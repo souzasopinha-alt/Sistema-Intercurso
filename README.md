@@ -1,2 +1,1 @@
-# Sistema-Intercurso
-Sistema feito para automatizar o intercurso. 
+# Sistema de Intercursos
