@@ -227,6 +227,7 @@ body::before {
     letter-spacing: -.045em;
     font-weight: 850;
     margin-bottom: 11px;
+    margin-top:40px;
 }
 
 .cabecalho p {
@@ -378,7 +379,7 @@ body::before {
     gap: 7px;
     padding: 8px 11px;
     border: 1px solid var(--borda);
-    border-radius: 10px;
+    border-radius: 60%;
     background: #fff;
     color: var(--preto);
     cursor: pointer;
