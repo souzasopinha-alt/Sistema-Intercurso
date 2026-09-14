@@ -1,0 +1,594 @@
+:root {
+    --preto: #101114;
+    --preto-2: #181a1f;
+    --cinza-escuro: #34373d;
+    --cinza: #72767e;
+    --cinza-claro: #e6e7e9;
+    --cinza-fundo: #f4f4f2;
+    --branco: #ffffff;
+    --borda: #dedfe2;
+    --sombra: 0 24px 70px rgba(0, 0, 0, .18);
+    --transicao: cubic-bezier(.22, .8, .2, 1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    min-height: 100%;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 28px 18px;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--preto);
+    background: #f4f4f2 url("img/branco.jpeg") center / cover no-repeat fixed;
+    position: relative;
+    overflow-x: hidden;
+    isolation: isolate;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, .18);
+    z-index: -1;
+    pointer-events: none;
+}
+
+#fundoTransicao {
+    position: fixed;
+    inset: -3%;
+    z-index: 0;
+    pointer-events: none;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    opacity: 0;
+    transform: scale(1.035);
+    clip-path: polygon(
+        0 0, 0 0, 0 0, 0 0,
+        0 0, 0 0, 0 0, 0 0
+    );
+}
+
+#fundoTransicao.transicao-ativa {
+    animation: pinturaEntrando 1.25s var(--transicao) forwards;
+}
+
+@keyframes pinturaEntrando {
+    0% {
+        opacity: 1;
+        transform: scale(1.035);
+        clip-path: polygon(
+            0 0, 0 0, 0 0, 0 0,
+            0 0, 0 0, 0 0, 0 0
+        );
+    }
+
+    18% {
+        clip-path: polygon(
+            0 12%, 8% 8%, 16% 13%, 25% 7%,
+            35% 14%, 46% 9%, 58% 15%, 70% 8%,
+            82% 13%, 94% 7%, 100% 11%, 100% 21%,
+            92% 18%, 84% 25%, 73% 20%, 63% 28%,
+            52% 21%, 40% 29%, 29% 22%, 18% 28%,
+            8% 21%, 0 27%
+        );
+    }
+
+    38% {
+        clip-path: polygon(
+            0 7%, 8% 11%, 17% 5%, 28% 14%,
+            39% 8%, 51% 16%, 63% 7%, 75% 14%,
+            87% 6%, 100% 12%, 100% 39%, 94% 35%,
+            84% 44%, 72% 37%, 60% 48%, 49% 39%,
+            37% 50%, 25% 40%, 14% 49%, 5% 39%, 0 45%
+        );
+    }
+
+    62% {
+        clip-path: polygon(
+            0 0, 11% 6%, 21% 2%, 32% 9%, 44% 4%,
+            56% 10%, 68% 3%, 80% 9%, 91% 2%, 100% 7%,
+            100% 68%, 91% 63%, 82% 72%, 70% 65%,
+            59% 75%, 47% 67%, 36% 77%, 24% 69%,
+            12% 76%, 4% 68%, 0 73%
+        );
+    }
+
+    82% {
+        clip-path: polygon(
+            0 0, 100% 0, 100% 89%, 93% 85%, 84% 93%,
+            74% 87%, 64% 96%, 52% 89%, 41% 98%,
+            30% 90%, 19% 97%, 9% 90%, 0 96%
+        );
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        clip-path: polygon(
+            0 0, 100% 0, 100% 100%, 0 100%
+        );
+    }
+}
+
+.textura-transicao {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0;
+    background:
+        radial-gradient(circle at 14% 28%, rgba(255,255,255,.9) 0 2px, transparent 3px),
+        radial-gradient(circle at 79% 63%, rgba(255,255,255,.8) 0 3px, transparent 4px),
+        radial-gradient(circle at 57% 19%, rgba(255,255,255,.7) 0 1px, transparent 2px);
+}
+
+.textura-transicao.ativa {
+    animation: respingos .95s ease-out forwards;
+}
+
+@keyframes respingos {
+    0% { opacity: 0; transform: scale(.96); }
+    35% { opacity: .8; transform: scale(1.02); }
+    100% { opacity: 0; transform: scale(1.05); }
+}
+
+.container {
+    width: min(100%, 560px);
+    max-width: 100%;
+    position: relative;
+    z-index: 2;
+    margin: 0 auto;
+}
+
+.etapa {
+    display: none;
+    width: 100%;
+}
+
+.etapa.ativa {
+    display: block;
+    animation: entrarEtapa .65s var(--transicao) both;
+}
+
+@keyframes entrarEtapa {
+    from {
+        opacity: 0;
+        transform: translateY(24px) scale(.985);
+        filter: blur(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+    }
+}
+
+.formulario-container {
+    position: relative;
+    width: 100%;
+    padding: 36px;
+    background: rgba(255,255,255,.97);
+    border: 1px solid rgba(16,17,20,.08);
+    border-radius: 24px;
+    box-shadow: var(--sombra);
+    backdrop-filter: blur(12px);
+}
+
+.formulario-container::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 24px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
+    pointer-events: none;
+}
+
+.marca {
+    display: inline-flex;
+    margin-bottom: 28px;
+    padding: 7px 11px;
+    border: 1px solid var(--borda);
+    border-radius: 999px;
+    color: var(--cinza);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .14em;
+}
+
+.cabecalho {
+    margin-bottom: 26px;
+}
+
+.numero-etapa {
+    display: block;
+    margin-bottom: 8px;
+    color: #9a9da3;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .18em;
+}
+
+.cabecalho h1 {
+    color: var(--preto);
+    font-size: clamp(28px, 6vw, 38px);
+    line-height: 1.05;
+    letter-spacing: -.045em;
+    font-weight: 850;
+    margin-bottom: 11px;
+}
+
+.cabecalho p {
+    max-width: 450px;
+    color: var(--cinza);
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.opcoes-curso {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.curso-opcao {
+    position: relative;
+}
+
+.curso-opcao input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.curso-opcao label {
+    min-height: 76px;
+    display: grid;
+    grid-template-columns: 38px 1fr auto;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 15px;
+    border: 1px solid var(--borda);
+    border-radius: 16px;
+    background: #fafafa;
+    color: var(--preto);
+    cursor: pointer;
+    transition: transform .25s ease, border-color .25s ease, background .25s ease, box-shadow .25s ease;
+}
+
+.curso-opcao label:hover {
+    transform: translateX(3px);
+    border-color: #bfc1c5;
+    background: #fff;
+}
+
+.curso-opcao input:checked + label {
+    border-color: var(--preto);
+    background: var(--preto);
+    color: #fff;
+    box-shadow: 0 12px 28px rgba(16,17,20,.16);
+    transform: translateX(5px);
+}
+
+.curso-indice {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #d5d6d9;
+    border-radius: 10px;
+    color: var(--cinza);
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.curso-opcao input:checked + label .curso-indice {
+    border-color: #555860;
+    color: #fff;
+}
+
+.curso-opcao strong {
+    display: block;
+    font-size: 15px;
+    letter-spacing: -.01em;
+}
+
+.curso-opcao small {
+    display: block;
+    margin-top: 3px;
+    color: var(--cinza);
+    font-size: 11px;
+}
+
+.curso-opcao input:checked + label small {
+    color: #b8bac0;
+}
+
+.curso-seta {
+    font-size: 20px;
+    color: #9b9da2;
+    transition: transform .25s ease;
+}
+
+.curso-opcao label:hover .curso-seta,
+.curso-opcao input:checked + label .curso-seta {
+    transform: translateX(3px);
+}
+
+.curso-opcao input:checked + label .curso-seta {
+    color: #fff;
+}
+
+.botao {
+    width: 100%;
+    min-height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px 8px 18px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--preto);
+    color: #fff;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 750;
+    cursor: pointer;
+    box-shadow: 0 10px 24px rgba(16,17,20,.15);
+    transition: transform .25s ease, background .25s ease, box-shadow .25s ease;
+}
+
+.botao:hover {
+    transform: translateY(-2px);
+    background: #25272c;
+    box-shadow: 0 15px 30px rgba(16,17,20,.22);
+}
+
+.botao:active {
+    transform: translateY(0);
+}
+
+.botao-icone {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    background: #2b2d32;
+    font-size: 18px;
+}
+
+.btn-voltar {
+    position: absolute;
+    top: 27px;
+    left: 28px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 11px;
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--preto);
+    cursor: pointer;
+    transition: transform .25s ease, background .25s ease, box-shadow .25s ease;
+}
+
+.btn-voltar:hover {
+    transform: translateX(-3px);
+    background: #f4f4f4;
+    box-shadow: 0 8px 18px rgba(0,0,0,.08);
+}
+
+.btn-voltar span {
+    font-size: 18px;
+}
+
+.btn-voltar small {
+    font-size: 11px;
+    font-weight: 750;
+}
+
+.linha-campos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.campo {
+    margin-bottom: 18px;
+}
+
+.campo label {
+    display: block;
+    margin: 0 0 8px 2px;
+    color: #303238;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.campo input,
+.campo select {
+    width: 100%;
+    height: 50px;
+    padding: 0 14px;
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    outline: none;
+    background: #fafafa;
+    color: var(--preto);
+    font: inherit;
+    font-size: 14px;
+    transition: border-color .25s ease, background .25s ease, box-shadow .25s ease;
+}
+
+.campo input::placeholder {
+    color: #a1a4aa;
+}
+
+.campo input:hover,
+.campo select:hover {
+    background: #fff;
+}
+
+.campo input:focus,
+.campo select:focus {
+    border-color: #777a81;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(16,17,20,.06);
+}
+
+.erro {
+    display: block;
+    min-height: 17px;
+    margin: 5px 2px 0;
+    color: #8d2020;
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.sucesso {
+    display: none;
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid #cfd1d4;
+    border-radius: 13px;
+    background: #f1f2f3;
+    color: #25272b;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.7;
+    font-weight: 650;
+    animation: aparecerSucesso .45s ease both;
+}
+
+@keyframes aparecerSucesso {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 22px 16px;
+        background-attachment: scroll;
+    }
+
+    .formulario-container {
+        padding: 30px 24px;
+    }
+}
+
+@media (max-width: 560px) {
+    body {
+        padding: 15px 10px;
+        align-items: flex-start;
+        padding-top: 30px;
+    }
+
+    .container {
+        width: min(100%, 100%);
+    }
+
+    .formulario-container {
+        padding: 28px 20px;
+        border-radius: 20px;
+    }
+
+    .marca {
+        font-size: 9px;
+        letter-spacing: .12em;
+    }
+
+    .btn-voltar {
+        top: 20px;
+        left: 20px;
+    }
+
+    .formulario-container .marca {
+        margin-bottom: 24px;
+    }
+
+    .linha-campos {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+    .curso-opcao label {
+        min-height: 70px;
+        grid-template-columns: 34px 1fr auto;
+        gap: 10px;
+        padding: 12px 12px;
+    }
+
+    .curso-seta {
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 390px) {
+    body {
+        padding: 12px 8px;
+        padding-top: 18px;
+    }
+
+    .formulario-container {
+        padding: 22px 16px;
+        border-radius: 18px;
+    }
+
+    .cabecalho h1 {
+        font-size: clamp(24px, 9vw, 30px);
+    }
+
+    .cabecalho p {
+        font-size: 13px;
+    }
+
+    .curso-opcao label {
+        grid-template-columns: 1fr;
+        justify-items: flex-start;
+        text-align: left;
+    }
+
+    .curso-seta {
+        display: none;
+    }
+
+    .btn-voltar {
+        position: static;
+        margin-bottom: 16px;
+    }
+
+    .botao {
+        min-height: 50px;
+        font-size: 13px;
+        padding-left: 14px;
+    }
+
+    .botao-icone {
+        width: 34px;
+        height: 34px;
+        font-size: 16px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+    }
+}
