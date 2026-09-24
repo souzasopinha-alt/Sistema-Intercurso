@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pagamento via PIX ou dinheiro</title>
+  <link rel="stylesheet" href="pagamento.css">
+  </head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#" aria-label="Ateliê Aurora - início">
+      <span class="brand-mark" aria-hidden="true">✦</span>
+      <span>EEEP <strong>Joaquim Albano</strong></span>
+    </a>
+    <div class="secure-label" aria-label="Pagamento seguro">
+      <span class="lock-icon" aria-hidden="true">⌑</span>
+      pagamento seguro
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">última etapa</p>
+        <h1>Finalize seu pagamento</h1>
+        <p class="lead">Escolha a forma de pagamento e envie o comprovante quando necessário.</p>
+      </div>
+      <div class="order-badge"><span></span></div>
+    </div>
+
+    <div class="pix-details" id="pix-details">
+      <p class="muted">Valor a pagar</p>
+      <p class="total">R$ 35,00</p>
+      <p class="muted pix-help">Copie a chave PIX abaixo:</p>
+      <div class="pix-key-label">
+        <span>Chave PIX (e-mail, CPF ou número de telefone)</span>
+        <button class="copy-button" type="button" id="copy-key" aria-label="Copiar chave PIX">copiar</button>
+      </div>
+      <div class="pix-key" id="pix-key" data-copy-value="financeiro@atelieaurora.com.br">Chave pix do brunão</div>
+      <p class="copy-feedback" id="copy-feedback" role="status" aria-live="polite"></p>
+    </div>
+
+    <div class="attention-note">
+      <span class="note-icon" aria-hidden="true">!</span>
+      <p><strong>Importante:</strong> confira o valor e o destinatário antes de confirmar o pagamento.</p>
+    </div>
+
+    <section class="receipt-card card" aria-labelledby="receipt-title">
+      <div class="card-heading">
+        <div class="step-icon">03</div>
+        <div>
+          <p class="section-kicker">forma de pagamento</p>
+          <h2 id="receipt-title">Finalize seu pagamento</h2>
+        </div>
+      </div>
+
+      <form id="payment-form" action="/api/pagamentos/comprovante" method="post" enctype="multipart/form-data">
+        <fieldset class="payment-method">
+          <legend>Como você deseja pagar?</legend>
+          <div class="payment-method-options">
+            <label class="payment-method-option">
+              <input type="radio" name="metodo_pagamento" value="pix" checked>
+              <span>PIX</span>
+            </label>
+            <label class="payment-method-option">
+              <input type="radio" name="metodo_pagamento" value="dinheiro">
+              <span>Dinheiro</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <p class="receipt-intro" id="receipt-intro">
+          Depois de realizar o PIX, envie uma foto ou captura de tela do comprovante para liberarmos seu pedido.
+        </p>
+
+        <div class="description-field">
+          <label for="description">Descrição</label>
+          <textarea id="description" name="descricao" rows="4" placeholder="Digite uma descrição ou observação sobre o pagamento..."></textarea>
+        </div>
+
+        <p class="cash-message" id="cash-message" hidden>
+          Você escolheu pagar em dinheiro. Não é necessário anexar um comprovante.
+        </p>
+
+        <label class="upload-zone" for="receipt-file" id="upload-zone">
+          <input id="receipt-file" name="comprovante" type="file" accept="image/png,image/jpeg,image/webp,application/pdf">
+          <span class="upload-icon" aria-hidden="true">↑</span>
+          <span class="upload-title">Clique para anexar seu comprovante</span>
+          <span class="upload-subtitle">PNG, JPG, WEBP ou PDF · máximo 10 MB</span>
+        </label>
+
+        <div class="file-preview" id="file-preview" hidden>
+          <div class="preview-media" id="preview-media"></div>
+          <div class="preview-meta">
+            <strong id="file-name">comprovante.jpg</strong>
+            <span id="file-size">0 KB</span>
+          </div>
+          <button class="remove-file" id="remove-file" type="button" aria-label="Remover arquivo">×</button>
+        </div>
+
+        <p class="form-error" id="form-error" role="alert" aria-live="assertive"></p>
+        <button class="submit-button" type="submit" id="submit-button">
+          <span id="submit-label">Confirmar envio do comprovante</span>
+          <span aria-hidden="true">→</span>
+        </button>
+      </form>
+
+      <p class="privacy-note">
+        <span aria-hidden="true">⌁</span>
+        Seus dados são tratados com segurança e usados apenas para confirmar o pagamento.
+      </p>
+    </section>
+
+    <p class="support-line">
+      Precisa de ajuda? <a href="mailto:suporte@atelieaurora.com.br">Fale com nosso suporte</a>
+    </p>
+  </main>
+
+  <footer class="site-footer">
+    <span>© 2024 Ateliê Aurora</span>
+    <span>feito com cuidado para você</span>
+  </footer>
+
+  <script>
+    (() => {
+      const input = document.querySelector('#receipt-file');
+      const zone = document.querySelector('#upload-zone');
+      const preview = document.querySelector('#file-preview');
+      const previewMedia = document.querySelector('#preview-media');
+      const fileName = document.querySelector('#file-name');
+      const fileSize = document.querySelector('#file-size');
+      const error = document.querySelector('#form-error');
+      const form = document.querySelector('#payment-form');
+      const remove = document.querySelector('#remove-file');
+      const copyButton = document.querySelector('#copy-key');
+      const copyFeedback = document.querySelector('#copy-feedback');
+      const pixDetails = document.querySelector('#pix-details');
+      const cashMessage = document.querySelector('#cash-message');
+      const receiptIntro = document.querySelector('#receipt-intro');
+      const submitLabel = document.querySelector('#submit-label');
+      const paymentOptions = document.querySelectorAll('input[name="metodo_pagamento"]');
+      const maxSize = 10 * 1024 * 1024;
+
+      const formatSize = bytes => bytes < 1024 * 1024
+        ? `${Math.max(1, Math.round(bytes / 1024))} KB`
+        : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+
+      const selectedPaymentMethod = () => document.querySelector('input[name="metodo_pagamento"]:checked').value;
+      const isCashPayment = () => selectedPaymentMethod() === 'dinheiro';
+
+      function clearFile() {
+        input.value = '';
+        preview.hidden = true;
+        previewMedia.innerHTML = '';
+        error.textContent = '';
+      }
+
+      function showFile(file) {
+        error.textContent = '';
+
+        if (!file) {
+          clearFile();
+          return;
+        }
+
+        if (file.size > maxSize) {
+          error.textContent = 'O arquivo excede o limite de 10 MB.';
+          clearFile();
+          return;
+        }
+
+        fileName.textContent = file.name;
+        fileSize.textContent = formatSize(file.size);
+        zone.hidden = true;
+        preview.hidden = false;
+
+        if (file.type.startsWith('image/')) {
+          const image = document.createElement('img');
+          image.alt = 'Prévia do comprovante';
+          image.src = URL.createObjectURL(file);
+          previewMedia.appendChild(image);
+        } else {
+          previewMedia.innerHTML = '<span class="pdf-badge">PDF</span>';
+        }
+      }
+
+      function updatePaymentMethod() {
+        const cashPayment = isCashPayment();
+
+        pixDetails.hidden = cashPayment;
+        cashMessage.hidden = !cashPayment;
+        zone.hidden = cashPayment;
+        input.disabled = cashPayment;
+        error.textContent = '';
+        clearFile();
+
+        if (cashPayment) {
+          receiptIntro.textContent = 'O pagamento será realizado em dinheiro. Não é necessário enviar comprovante.';
+          submitLabel.textContent = 'Confirmar pagamento em dinheiro';
+        } else {
+          receiptIntro.textContent = 'Depois de realizar o PIX, envie uma foto ou captura de tela do comprovante para liberarmos seu pedido.';
+          submitLabel.textContent = 'Confirmar envio do comprovante';
+        }
+      }
+
+      input.addEventListener('change', () => showFile(input.files[0]));
+      remove.addEventListener('click', clearFile);
+      paymentOptions.forEach(option => option.addEventListener('change', updatePaymentMethod));
+
+      ['dragenter', 'dragover'].forEach(event => {
+        zone.addEventListener(event, eventObject => {
+          eventObject.preventDefault();
+          zone.classList.add('is-dragging');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(event => {
+        zone.addEventListener(event, eventObject => {
+          eventObject.preventDefault();
+          zone.classList.remove('is-dragging');
+        });
+      });
+
+      zone.addEventListener('drop', eventObject => {
+        const file = eventObject.dataTransfer.files[0];
+
+        if (file && !isCashPayment()) {
+          const transfer = new DataTransfer();
+          transfer.items.add(file);
+          input.files = transfer.files;
+          showFile(file);
+        }
+      });
+
+      form.addEventListener('submit', eventObject => {
+        if (!isCashPayment() && !input.files[0]) {
+          eventObject.preventDefault();
+          error.textContent = 'Anexe o comprovante antes de confirmar o envio.';
+          zone.focus();
+        }
+      });
+
+      copyButton.addEventListener('click', async () => {
+        const value = document.querySelector('#pix-key').dataset.copyValue;
+
+        try {
+          await navigator.clipboard.writeText(value);
+          copyFeedback.textContent = 'Chave PIX copiada!';
+        } catch {
+          copyFeedback.textContent = 'Selecione e copie a chave PIX manualmente.';
+        }
+
+        setTimeout(() => {
+          copyFeedback.textContent = '';
+        }, 3000);
+      });
+    })();
+  </script>
+</body>
+</html>
