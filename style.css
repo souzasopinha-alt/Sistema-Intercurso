@@ -1,0 +1,259 @@
+/* =========================================
+   CONFIGURAÇÕES GERAIS
+========================================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f6f8;
+    min-height: 100vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #222;
+}
+
+
+/* =========================================
+   CONTAINER PRINCIPAL
+========================================= */
+
+.container {
+    width: 100%;
+    max-width: 460px;
+    padding: 20px;
+}
+
+
+/* =========================================
+   CARD DE LOGIN E CADASTRO
+========================================= */
+
+.login,
+.cadastro {
+    background: #ffffff;
+
+    padding: 40px;
+
+    border-radius: 16px;
+
+    box-shadow: 
+        0 10px 30px rgba(0, 0, 0, 0.08);
+
+    border: 1px solid #e5e5e5;
+}
+
+
+/* =========================================
+   TÍTULOS
+========================================= */
+
+h1 {
+    text-align: center;
+
+    font-size: 30px;
+
+    margin-bottom: 10px;
+
+    color: #1f1f1f;
+}
+
+
+/* =========================================
+   TEXTOS
+========================================= */
+
+.login > p,
+.cadastro > p {
+    text-align: center;
+
+    color: #777;
+
+    font-size: 15px;
+
+    line-height: 1.5;
+}
+
+
+/* =========================================
+   CAMPOS DO FORMULÁRIO
+========================================= */
+
+.campo {
+    margin-top: 22px;
+}
+
+.campo label {
+    display: block;
+
+    margin-bottom: 8px;
+
+    font-size: 14px;
+
+    font-weight: bold;
+
+    color: #333;
+}
+
+
+/* =========================================
+   INPUTS
+========================================= */
+
+input {
+    width: 100%;
+
+    padding: 14px 15px;
+
+    border: 1px solid #d5d5d5;
+
+    border-radius: 9px;
+
+    background: #fafafa;
+
+    font-size: 15px;
+
+    color: #222;
+
+    transition: 0.2s;
+}
+
+input::placeholder {
+    color: #999;
+}
+
+input:focus {
+    outline: none;
+
+    background: #ffffff;
+
+    border-color: #222;
+
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
+}
+
+
+/* =========================================
+   BOTÃO
+========================================= */
+
+button {
+    width: 100%;
+
+    margin-top: 28px;
+
+    padding: 14px;
+
+    border: none;
+
+    border-radius: 9px;
+
+    background: #222;
+
+    color: #ffffff;
+
+    font-size: 16px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+}
+
+button:hover {
+    background: #000;
+
+    transform: translateY(-1px);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+
+/* =========================================
+   MENSAGENS
+========================================= */
+
+#mensagem,
+#mensagemCadastro {
+    margin-top: 18px;
+
+    text-align: center;
+
+    font-size: 14px;
+}
+
+
+/* =========================================
+   MENSAGEM DE SUCESSO
+========================================= */
+
+.sucesso {
+    color: #16803c !important;
+
+    font-weight: bold;
+}
+
+
+/* =========================================
+   MENSAGEM DE ERRO
+========================================= */
+
+.erro {
+    color: #d62828 !important;
+
+    font-weight: bold;
+}
+
+
+/* =========================================
+   LINK ENTRE LOGIN E CADASTRO
+========================================= */
+
+.link {
+    margin-top: 25px;
+}
+
+.link a {
+    color: #222;
+
+    font-weight: bold;
+
+    text-decoration: none;
+
+    transition: 0.2s;
+}
+
+.link a:hover {
+    text-decoration: underline;
+}
+
+
+/* =========================================
+   RESPONSIVIDADE
+========================================= */
+
+@media (max-width: 500px) {
+
+    .container {
+        padding: 15px;
+    }
+
+    .login,
+    .cadastro {
+        padding: 30px 22px;
+    }
+
+    h1 {
+        font-size: 26px;
+    }
+}
