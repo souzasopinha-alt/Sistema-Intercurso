@@ -7,10 +7,12 @@
     <link rel="stylesheet" href="pedido.css">
 </head>
 <body>
+    <!-- Camada usada para fazer a transição "pintada" entre os fundos -->
     <div id="fundoTransicao" aria-hidden="true"></div>
     <div class="textura-transicao" aria-hidden="true"></div>
 
     <main class="container">
+        <!-- ETAPA 1: escolha do curso -->
         <section id="etapaCurso" class="etapa ativa">
             <div class="formulario-container formulario-escolha">
                 <div class="marca">FARDAMENTO • INTERCURSO</div>
@@ -68,19 +70,34 @@
             </div>
         </section>
 
+        <!-- ETAPA 2: pedido -->
         <section id="etapaPedido" class="etapa">
             <div class="formulario-container">
                 <button type="button" id="btnVoltarCurso" class="btn-voltar" aria-label="Voltar para seleção do curso">
                     <span>←</span>
+                    <small>Voltar</small>
                 </button>
 
+                <div class="marca">FARDAMENTO • INTERCURSO</div>
 
                 <div class="cabecalho">
+                    <span class="numero-etapa">02</span>
                     <h1>Pedido de Fardamento</h1>
                     <p>Preencha os dados para personalizar sua camisa.</p>
                 </div>
 
                 <form id="formPedido">
+                    <div class="campo">
+                        <label for="modelo">Curso / modelo</label>
+                        <select id="modelo" name="modelo">
+                            <option value="">Selecione o curso</option>
+                            <option value="Informatica">Informática</option>
+                            <option value="Contabilidade">Contabilidade</option>
+                            <option value="Enfermagem">Enfermagem</option>
+                        </select>
+                        <span class="erro" id="erroModelo"></span>
+                    </div>
+
                     <div class="linha-campos">
                         <div class="campo">
                             <label for="numero">Número</label>
@@ -92,9 +109,11 @@
                             <label for="tamanho">Tamanho</label>
                             <select id="tamanho" name="tamanho">
                                 <option value="">Selecione</option>
+                                <option value="PP">PP</option>
                                 <option value="P">P</option>
                                 <option value="M">M</option>
                                 <option value="G">G</option>
+                                <option value="GG">GG</option>
                             </select>
                             <span class="erro" id="erroTamanho"></span>
                         </div>
