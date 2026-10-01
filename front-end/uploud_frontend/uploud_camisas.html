@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intercurso — envie suas imagens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="sprockets">
+  <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+  <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+  <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+</div>
+
+<header>
+  <div class="eyebrow">intercurso</div>
+  <h1>Envie suas<br><em>imagens</em></h1>
+  <p class="lede">Envie uma imagem da camisa de Informática, uma de Contabilidade e uma de Enfermagem.</p>
+  <button class="upload-cta" id="openUpload">+ Enviar as 3 camisas</button>
+</header>
+
+<main>
+  <div class="section-label">
+    <h2>Camisas dos cursos</h2>
+    <span id="countLabel">carregando…</span>
+  </div>
+  <div class="options-list" id="optionsList">
+    <div class="empty">
+      <strong>Nenhuma camisa cadastrada</strong>
+      Envie as três camisas dos cursos para começar.
+    </div>
+  </div>
+</main>
+
+<footer>Envie as três imagens das camisas do Intercurso.</footer>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <button class="close-x" id="closeModal">&times;</button>
+    <h3>Enviar camisas</h3>
+    <p class="hint">Selecione uma imagem para cada curso.</p>
+
+    <label>Informática</label>
+    <div class="filedrop image-drop" data-index="0">
+      <input type="file" class="image-input" accept="image/*">
+      <div class="fd-label">Clique para escolher a camisa de Informática</div>
+      <div class="fd-file"></div>
+      <img class="thumb" alt="Prévia da camisa de Informática">
+    </div>
+
+    <label>Contabilidade</label>
+    <div class="filedrop image-drop" data-index="1">
+      <input type="file" class="image-input" accept="image/*">
+      <div class="fd-label">Clique para escolher a camisa de Contabilidade</div>
+      <div class="fd-file"></div>
+      <img class="thumb" alt="Prévia da camisa de Contabilidade">
+    </div>
+
+    <label>Enfermagem</label>
+    <div class="filedrop image-drop" data-index="2">
+      <input type="file" class="image-input" accept="image/*">
+      <div class="fd-label">Clique para escolher a camisa de Enfermagem</div>
+      <div class="fd-file"></div>
+      <img class="thumb" alt="Prévia da camisa de Enfermagem">
+    </div>
+
+    <div class="status" id="uStatus"></div>
+    <button class="submit-btn" id="submitBtn" disabled>Enviar camisas</button>
+  </div>
+</div>
+
+
+<script>
+const SUPABASE_URL='https://ecjnysmrbylbpibsibzh.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_xm_GiaLwajAHnxSbO-7c1w_XcYmjE_n';
+const SUPABASE_BUCKET='imagens';
+const MAX_BYTES=10*1024*1024;
+
+const overlay=document.getElementById('overlay');
+const openBtn=document.getElementById('openUpload');
+const closeBtn=document.getElementById('closeModal');
+const statusEl=document.getElementById('uStatus');
+const submitBtn=document.getElementById('submitBtn');
+const optionsList=document.getElementById('optionsList');
+const countLabel=document.getElementById('countLabel');
+const drops=[...document.querySelectorAll('.image-drop')];
+const inputs=[...document.querySelectorAll('.image-input')];
+let selectedFiles=[null,null,null];
+
+function headers(extra={}){return {'apikey':SUPABASE_ANON_KEY,...extra};}
+function setStatus(m='',t=''){statusEl.textContent=m;statusEl.className='status'+(t?' '+t:'');}
+function updateSubmit(){submitBtn.disabled=!selectedFiles.every(Boolean);}
+
+function resetForm(){
+  selectedFiles=[null,null,null];
+  inputs.forEach((input,i)=>{
+    input.value='';
+    drops[i].classList.remove('has-image');
+    drops[i].querySelector('.fd-file').textContent='';
+    drops[i].querySelector('.fd-label').textContent=`Clique para escolher a imagem`;
+    drops[i].querySelector('.thumb').removeAttribute('src');
+  });
+  setStatus(); updateSubmit();
+}
+
+openBtn.addEventListener('click',()=>overlay.classList.add('open'));
+closeBtn.addEventListener('click',()=>{overlay.classList.remove('open');resetForm();});
+overlay.addEventListener('click',e=>{if(e.target===overlay){overlay.classList.remove('open');resetForm();}});
+drops.forEach((drop,i)=>drop.addEventListener('click',()=>inputs[i].click()));
+
+/* Compactação nativa: o arquivo enviado ao Supabase passa primeiro pelo Canvas.
+   Não depende de CDN ou biblioteca externa. */
+const COMPRESSION_MAX_BYTES=1.5*1024*1024;
+const COMPRESSION_MAX_DIMENSION=1600;
+const COMPRESSION_INITIAL_QUALITY=0.82;
+
+function loadImageForCompression(file){
+  if('createImageBitmap' in window){
+    return createImageBitmap(file,{imageOrientation:'from-image'})
+      .catch(()=>loadImageWithElement(file));
+  }
+  return loadImageWithElement(file);
+}
+
+function loadImageWithElement(file){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror=()=>{
+      URL.revokeObjectURL(url);
+      reject(new Error('Não foi possível ler esta imagem no navegador.'));
+    };
+    img.src=url;
+  });
+}
+
+function canvasToBlob(canvas,quality){
+  return new Promise((resolve,reject)=>{
+    canvas.toBlob(blob=>{
+      if(blob) resolve(blob);
+      else reject(new Error('Não foi possível compactar a imagem.'));
+    },'image/jpeg',quality);
+  });
+}
+
+async function compressImageForUpload(file){
+  const source=await loadImageForCompression(file);
+  const sourceWidth=source.width;
+  const sourceHeight=source.height;
+
+  if(!sourceWidth || !sourceHeight){
+    if(source.close) source.close();
+    throw new Error('A imagem não possui dimensões válidas.');
+  }
+
+  const scale=Math.min(1,COMPRESSION_MAX_DIMENSION/Math.max(sourceWidth,sourceHeight));
+  let width=Math.max(1,Math.round(sourceWidth*scale));
+  let height=Math.max(1,Math.round(sourceHeight*scale));
+  let quality=COMPRESSION_INITIAL_QUALITY;
+
+  const canvas=document.createElement('canvas');
+  const draw=()=>{
+    canvas.width=width;
+    canvas.height=height;
+    const ctx=canvas.getContext('2d',{alpha:false});
+    if(!ctx) throw new Error('O navegador não disponibilizou o Canvas.');
+    ctx.imageSmoothingEnabled=true;
+    ctx.imageSmoothingQuality='high';
+    ctx.fillStyle='#fff';
+    ctx.fillRect(0,0,width,height);
+    ctx.drawImage(source,0,0,width,height);
+  };
+
+  draw();
+  let blob=await canvasToBlob(canvas,quality);
+
+  while(blob.size>COMPRESSION_MAX_BYTES && quality>0.45){
+    quality=Math.max(0.45,quality-0.08);
+    blob=await canvasToBlob(canvas,quality);
+  }
+
+  while(blob.size>COMPRESSION_MAX_BYTES && Math.max(width,height)>800){
+    width=Math.max(1,Math.round(width*0.85));
+    height=Math.max(1,Math.round(height*0.85));
+    draw();
+    blob=await canvasToBlob(canvas,quality);
+  }
+
+  if(source.close) source.close();
+
+  /* Se a conversão para JPEG ficou maior que o original, mantém o original.
+     Assim a compactação nunca aumenta desnecessariamente o arquivo. */
+  if(blob.size>=file.size){
+    return {
+      file,
+      originalSize:file.size,
+      compressedSize:file.size,
+      changed:false
+    };
+  }
+
+  const compressed=new File(
+    [blob],
+    (file.name.replace(/\.[^.]+$/,'')||'imagem')+'.jpg',
+    {type:'image/jpeg',lastModified:Date.now()}
+  );
+
+  return {
+    file:compressed,
+    originalSize:file.size,
+    compressedSize:compressed.size,
+    changed:true
+  };
+}
+
+inputs.forEach((input,i)=>{
+  input.addEventListener('change',async()=>{
+    const file=input.files[0];
+    selectedFiles[i]=null;
+    drops[i].classList.remove('has-image');
+    setStatus();
+
+    if(!file){updateSubmit();return;}
+    if(!file.type.startsWith('image/')){
+      setStatus(`A imagem ${i+1} não é válida.`,'err');
+      input.value='';
+      updateSubmit();
+      return;
+    }
+    if(file.size>MAX_BYTES){
+      setStatus(`A imagem ${i+1} ultrapassa 10 MB.`,'err');
+      input.value='';
+      updateSubmit();
+      return;
+    }
+
+    try{
+      setStatus(`Compactando a imagem ${i+1}…`);
+      const result=await compressImageForUpload(file);
+
+      /* É este arquivo compactado que fica em selectedFiles
+         e, portanto, é este que será enviado ao Supabase. */
+      selectedFiles[i]=result.file;
+
+      drops[i].classList.add('has-image');
+      drops[i].querySelector('.fd-label').textContent='Imagem selecionada';
+      drops[i].querySelector('.fd-file').textContent='';
+
+      const reader=new FileReader();
+      reader.onload=()=>drops[i].querySelector('.thumb').src=reader.result;
+      reader.readAsDataURL(result.file);
+
+      setStatus('Imagem pronta para envio.','ok');
+      updateSubmit();
+    }catch(error){
+      console.error(error);
+      selectedFiles[i]=null;
+      input.value='';
+      drops[i].classList.remove('has-image');
+      drops[i].querySelector('.fd-file').textContent='';
+      setStatus(`Não foi possível compactar a imagem ${i+1}: ${error.message}`,'err');
+      updateSubmit();
+    }
+  });
+});
+
+function imageUrl(path){return `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${path.split('/').map(encodeURIComponent).join('/')}`;}
+
+async function enviarParaServidor(){
+  const formData=new FormData();
+  formData.append('imagem1',selectedFiles[0],selectedFiles[0].name);
+  formData.append('imagem2',selectedFiles[1],selectedFiles[1].name);
+  formData.append('imagem3',selectedFiles[2],selectedFiles[2].name);
+
+  const r=await fetch('../../backend/uploud_backend/upload_camisas.php',{
+    method:'POST',
+    body:formData,
+    credentials:'include'
+  });
+
+  const data=await r.json().catch(()=>({success:false,message:'Resposta inválida do servidor.'}));
+  if(!r.ok || !data.success){
+    throw new Error(data.message||`Falha no envio (${r.status}).`);
+  }
+  return data;
+}
+
+async function loadOptions(){
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/opcoes?select=id,imagem1,imagem2,imagem3&aprovado=eq.true&order=created_at.asc,id.asc`,{headers:headers()});
+    if(!r.ok) throw new Error(await r.text());
+    const rows=await r.json();
+    countLabel.textContent=`${rows.length} ${rows.length===1?'opção':'opções'}`;
+    if(!rows.length){
+      optionsList.innerHTML='<div class="empty"><strong>Nenhuma camisa cadastrada</strong>Envie as três camisas dos cursos para começar.</div>';
+      return;
+    }
+    optionsList.innerHTML='';
+    rows.forEach((row,index)=>{
+      const optionNumber=index+1;
+      const card=document.createElement('article');
+      card.className='option-card';
+      card.innerHTML=`<div class="option-header"><h3 class="option-title"><span class="option-id">Opção ${optionNumber}</span></h3></div><div class="shirts-grid"></div>`;
+      const grid=card.querySelector('.shirts-grid');
+      [row.imagem1,row.imagem2,row.imagem3].forEach((path,i)=>{
+        const slot=document.createElement('div'); slot.className='shirt-slot';
+        const img=document.createElement('img');
+        img.className='shirt-image';
+        img.src=imageUrl(path);
+        img.alt=`Imagem ${i+1} da opção ${optionNumber}`;
+        img.loading='lazy';
+        slot.appendChild(img);
+        grid.appendChild(slot);
+      });
+      optionsList.appendChild(card);
+    });
+  }catch(e){
+    console.error(e); countLabel.textContent='erro';
+    optionsList.innerHTML='<div class="empty"><strong>Não foi possível carregar as opções</strong>Confira a tabela "opcoes" e as permissões do Supabase.</div>';
+  }
+}
+
+submitBtn.addEventListener('click',async()=>{
+  if(selectedFiles.some(f=>!f)) return;
+  submitBtn.disabled=true;
+  submitBtn.textContent='Enviando…';
+  try{
+    setStatus('Enviando as três camisas…');
+    await enviarParaServidor();
+    setStatus('Camisas enviadas com sucesso.','ok');
+    await loadOptions();
+    setTimeout(()=>{overlay.classList.remove('open');resetForm();},700);
+  }catch(e){
+    console.error(e);
+    setStatus(e.message||'Não foi possível concluir o envio.','err');
+  }finally{
+    submitBtn.textContent='Enviar camisas';
+    updateSubmit();
+  }
+});
+
+function escapeHtml(str){const d=document.createElement('div');d.textContent=str;return d.innerHTML;}
+loadOptions();
+</script>
+
+</body>
+</html>

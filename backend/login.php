@@ -1,3 +1,4 @@
+```php
 <?php
 
 session_start();
@@ -38,6 +39,7 @@ if (!$autorizado) {
 
     exit;
 }
+
 $stmt = $pdo->prepare("
     SELECT id, nome, email, senha, tipo
     FROM usuarios
@@ -52,7 +54,13 @@ if (!$usuario) {
     $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
 
     $stmt = $pdo->prepare("
-        INSERT INTO usuarios (nome, email, senha, tipo, email_autorizado_id)
+        INSERT INTO usuarios (
+            nome,
+            email,
+            senha,
+            tipo,
+            email_autorizado_id
+        )
         VALUES (?, ?, ?, ?, ?)
     ");
 
@@ -70,7 +78,7 @@ if (!$usuario) {
         WHERE id = ?
     ");
 
-     $stmt->execute([$autorizado['id']]);
+    $stmt->execute([$autorizado['id']]);
 
     $usuario = [
         'id' => $pdo->lastInsertId(),
