@@ -20,7 +20,7 @@ if ($email === '' || $senha === '') {
 }
 
 $stmt = $pdo->prepare("
-    SELECT email, tipo, utilizado
+    SELECT id, email, tipo, utilizado
     FROM emails_autorizados
     WHERE email = ?
 ");
@@ -63,6 +63,14 @@ if (!$usuario) {
         $autorizado['tipo'],
         $autorizado['id']
     ]);
+
+    $stmt = $pdo->prepare("
+        UPDATE emails_autorizados
+        SET utilizado = 1
+        WHERE id = ?
+    ");
+
+     $stmt->execute([$autorizado['id']]);
 
     $usuario = [
         'id' => $pdo->lastInsertId(),

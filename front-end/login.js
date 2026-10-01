@@ -16,25 +16,25 @@ formulario.addEventListener("submit", function(event) {
     mensagem.textContent = "Enviando dados...";
 
 
-    fetch("login.php", {
+    fetch("../backend/login.php", {
 
-        method: "POST",
+    method: "POST",
 
-        headers: {
+    headers: {
 
-            "Content-Type": "application/json"
+        "Content-Type": "application/x-www-form-urlencoded"
 
-        },
+    },
 
-        body: JSON.stringify({
+    body: new URLSearchParams({
 
-            email: email,
+        email: email,
 
-            senha: senha
-
-        })
+        senha: senha
 
     })
+
+})
 
     .then(function(resposta) {
 
@@ -43,19 +43,22 @@ formulario.addEventListener("submit", function(event) {
     })
 
     .then(function(resultado) {
+    
+    if (resultado.sucesso) {
 
-        if (resultado.sucesso) {
+    mensagem.textContent =
+        "Login realizado com sucesso!";
+
+    mensagem.className = "sucesso";
+
+    if (resultado.tipo === "ALUNO") {
+        window.location.href = "pedido.html";
+    }
+
+    }else {
 
             mensagem.textContent =
-                "Login realizado com sucesso!";
-
-            mensagem.className = "sucesso";
-
-
-        } else {
-
-            mensagem.textContent =
-                resultado.mensagem;
+                resultado.erro;
 
             mensagem.className = "erro";
 
