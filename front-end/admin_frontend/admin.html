@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Administração — Fardamento Escolar</title>
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar__brand">
+    <span class="topbar__logo">FE</span>
+    <div class="topbar__names">
+      <strong>Fardamento Escolar</strong>
+      <span>Painel de Administração</span>
+    </div>
+  </div>
+
+  <div class="topbar__user">
+    <div class="topbar__user-info">
+      <span class="topbar__user-name" id="userName">Carregando...</span>
+      <span class="topbar__user-role" id="userRole">—</span>
+    </div>
+    <button class="btn btn--ghost" id="btnLogout" type="button">Sair</button>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="sidebar" aria-label="Menu principal">
+    <ul class="sidebar__list">
+      <li><button class="sidebar__link is-active" data-view="inicio">Início</button></li>
+      <li><button class="sidebar__link" data-view="pedidos">Pedidos</button></li>
+      <li><button class="sidebar__link" data-view="pagamentos">Pedidos pendentes</button></li>
+      <li><button class="sidebar__link" data-view="usuarios">Usuários</button></li>
+      <li><button class="sidebar__link" data-view="relatorio">Relatório</button></li>
+      <li><button class="sidebar__link" data-view="votacao">Votação</button></li>
+    </ul>
+    <button class="sidebar__logout" id="btnLogoutSide" type="button">Sair</button>
+  </nav>
+
+  <main class="content">
+
+    <section class="view is-active" id="view-inicio">
+      <div class="view__head">
+        <h1>Início</h1>
+        <p>Resumo dos pedidos de fardamento cadastrados.</p>
+      </div>
+
+      <div class="summary-grid" id="summaryGrid">
+        <article class="summary-card">
+          <span class="summary-card__label">Total de pedidos</span>
+          <span class="summary-card__value" id="sumTotalPedidos">—</span>
+        </article>
+
+        <article class="summary-card summary-card--pending">
+          <span class="summary-card__label">Pendentes</span>
+          <span class="summary-card__value" id="sumPendentes">—</span>
+        </article>
+
+        <article class="summary-card summary-card--approved">
+          <span class="summary-card__label">Aprovados</span>
+          <span class="summary-card__value" id="sumAprovados">—</span>
+        </article>
+
+        <article class="summary-card summary-card--refused">
+          <span class="summary-card__label">Recusados</span>
+          <span class="summary-card__value" id="sumRecusados">—</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="view" id="view-pedidos">
+      <div class="view__head">
+        <h1>Pedidos</h1>
+        <p>Pedidos cadastrados conforme o formulário de pedido.</p>
+      </div>
+
+      <div class="filters" id="filtrosPedidos">
+        <div class="filters__field">
+          <label for="filtroStatus">Status</label>
+          <select id="filtroStatus">
+            <option value="">Todos</option>
+            <option value="PENDENTE">Pendente</option>
+            <option value="APROVADO">Aprovado</option>
+            <option value="RECUSADO">Recusado</option>
+          </select>
+        </div>
+
+        <div class="filters__field">
+          <label for="filtroModelo">Curso</label>
+          <select id="filtroModelo">
+            <option value="">Todos</option>
+            <option value="Informatica">Informática</option>
+            <option value="Contabilidade">Contabilidade</option>
+            <option value="Enfermagem">Enfermagem</option>
+          </select>
+        </div>
+
+        <div class="filters__field">
+          <label for="filtroTamanho">Tamanho</label>
+          <select id="filtroTamanho">
+            <option value="">Todos</option>
+            <option value="P">P</option>
+            <option value="M">M</option>
+            <option value="G">G</option>
+          </select>
+        </div>
+
+        <button class="btn btn--ghost" id="btnLimparFiltros" type="button">
+          Limpar filtros
+        </button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table orders-table">
+          <thead>
+            <tr>
+              <th>Aluno</th>
+              <th>Curso</th>
+              <th>Número</th>
+              <th>Tamanho</th>
+              <th>Nome nas costas</th>
+              <th>Status</th>
+              <th>Data do pedido</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+
+          <tbody id="tabelaPedidos">
+            <tr>
+              <td colspan="8" class="table__empty">
+                Carregando pedidos...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="view" id="view-pagamentos">
+      <div class="view__head">
+        <h1>Pedidos pendentes</h1>
+        <p>Aceite ou recuse os pedidos que ainda estão pendentes.</p>
+      </div>
+
+      <div class="payment-list" id="listaPagamentos">
+        <p class="table__empty">Carregando pedidos pendentes...</p>
+      </div>
+    </section>
+
+    <section class="view" id="view-usuarios">
+      <div class="view__head">
+        <h1>Usuários</h1>
+        <p>Pessoas com acesso ao sistema.</p>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>E-mail</th>
+              <th>Tipo</th>
+              <th>Situação</th>
+            </tr>
+          </thead>
+
+          <tbody id="tabelaUsuarios">
+            <tr>
+              <td colspan="4" class="table__empty">
+                Carregando usuários...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="view" id="view-relatorio">
+      <div class="view__head">
+        <h1>Relatório</h1>
+        <p>Panorama dos pedidos por curso, tamanho e status.</p>
+      </div>
+
+      <div class="report-grid">
+        <div class="report-card">
+          <h2>Por curso</h2>
+          <ul class="report-list" id="reportModelo"></ul>
+        </div>
+
+        <div class="report-card">
+          <h2>Por tamanho</h2>
+          <ul class="report-list" id="reportTamanho"></ul>
+        </div>
+
+        <div class="report-card">
+          <h2>Por status</h2>
+          <ul class="report-list" id="reportStatus"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-votacao">
+      <div class="view__head">
+        <h1>Votação</h1>
+        <p>Quantidade de votos recebidos por cada opção de camisa.</p>
+      </div>
+      <div class="votos-toolbar">
+        <button class="btn btn--ghost votos-refresh" id="btnAtualizarVotos" type="button">Atualizar votos</button>
+      </div>
+      <div class="table-wrap">
+        <table class="table votos-table">
+          <thead><tr><th>Opção</th><th>Quantidade de votos</th></tr></thead>
+          <tbody id="tabelaVotos">
+            <tr><td colspan="2" class="table__empty">Clique em Votação para carregar os votos.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="modal" id="modalPagamento" aria-hidden="true">
+  <div class="modal__backdrop" data-close-modal></div>
+
+  <div class="modal__box" role="dialog" aria-modal="true"
+       aria-labelledby="modalPagamentoTitulo">
+
+    <div class="modal__header">
+      <h2 id="modalPagamentoTitulo">Detalhes do pedido</h2>
+      <button class="modal__close" data-close-modal
+              aria-label="Fechar">×</button>
+    </div>
+
+    <div class="modal__body" id="pagamentoDetalhe"></div>
+
+    <div class="modal__footer modal__footer--split">
+      <button class="btn btn--danger" id="btnRecusarModal" type="button">
+        Recusar
+      </button>
+
+      <button class="btn btn--success" id="btnAprovarModal" type="button">
+        Aceitar pedido
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="admin.js"></script>
+</body>
+</html>
