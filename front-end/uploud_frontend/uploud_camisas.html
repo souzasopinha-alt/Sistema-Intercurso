@@ -12,7 +12,7 @@
 
 <div class="sprockets">
   <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
-  <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+  <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
   <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
 </div>
 
@@ -73,7 +73,6 @@
   </div>
 </div>
 
-
 <script>
 const SUPABASE_URL='https://ecjnysmrbylbpibsibzh.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_xm_GiaLwajAHnxSbO-7c1w_XcYmjE_n';
@@ -112,8 +111,7 @@ closeBtn.addEventListener('click',()=>{overlay.classList.remove('open');resetFor
 overlay.addEventListener('click',e=>{if(e.target===overlay){overlay.classList.remove('open');resetForm();}});
 drops.forEach((drop,i)=>drop.addEventListener('click',()=>inputs[i].click()));
 
-/* Compactação nativa: o arquivo enviado ao Supabase passa primeiro pelo Canvas.
-   Não depende de CDN ou biblioteca externa. */
+/* Compactação nativa mantida exatamente na lógica do arquivo enviado. */
 const COMPRESSION_MAX_BYTES=1.5*1024*1024;
 const COMPRESSION_MAX_DIMENSION=1600;
 const COMPRESSION_INITIAL_QUALITY=0.82;
@@ -130,14 +128,8 @@ function loadImageWithElement(file){
   return new Promise((resolve,reject)=>{
     const img=new Image();
     const url=URL.createObjectURL(file);
-    img.onload=()=>{
-      URL.revokeObjectURL(url);
-      resolve(img);
-    };
-    img.onerror=()=>{
-      URL.revokeObjectURL(url);
-      reject(new Error('Não foi possível ler esta imagem no navegador.'));
-    };
+    img.onload=()=>{URL.revokeObjectURL(url);resolve(img);};
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Não foi possível ler esta imagem no navegador.'));};
     img.src=url;
   });
 }
@@ -196,15 +188,8 @@ async function compressImageForUpload(file){
 
   if(source.close) source.close();
 
-  /* Se a conversão para JPEG ficou maior que o original, mantém o original.
-     Assim a compactação nunca aumenta desnecessariamente o arquivo. */
   if(blob.size>=file.size){
-    return {
-      file,
-      originalSize:file.size,
-      compressedSize:file.size,
-      changed:false
-    };
+    return {file,originalSize:file.size,compressedSize:file.size,changed:false};
   }
 
   const compressed=new File(
@@ -245,9 +230,6 @@ inputs.forEach((input,i)=>{
     try{
       setStatus(`Compactando a imagem ${i+1}…`);
       const result=await compressImageForUpload(file);
-
-      /* É este arquivo compactado que fica em selectedFiles
-         e, portanto, é este que será enviado ao Supabase. */
       selectedFiles[i]=result.file;
 
       drops[i].classList.add('has-image');
@@ -272,72 +254,110 @@ inputs.forEach((input,i)=>{
   });
 });
 
-function imageUrl(path){return `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${path.split('/').map(encodeURIComponent).join('/')}`;}
-
+/*
+ * CORREÇÃO PRINCIPAL:
+ * O navegador não envia mais as imagens diretamente ao Supabase.
+ * Elas passam pelo upload_camisas.php, que usa a sessão PHP e o MariaDB
+ * para descobrir usuario_id, nome e email.
+ */
 async function enviarParaServidor(){
   const formData=new FormData();
+
   formData.append('imagem1',selectedFiles[0],selectedFiles[0].name);
   formData.append('imagem2',selectedFiles[1],selectedFiles[1].name);
   formData.append('imagem3',selectedFiles[2],selectedFiles[2].name);
 
-  const r=await fetch('../../backend/uploud_backend/upload_camisas.php',{
+  const r=await fetch('upload_camisas.php',{
     method:'POST',
     body:formData,
     credentials:'include'
   });
 
-  const data=await r.json().catch(()=>({success:false,message:'Resposta inválida do servidor.'}));
+  const data=await r.json().catch(()=>({
+    success:false,
+    message:'O servidor não retornou uma resposta JSON válida.'
+  }));
+
   if(!r.ok || !data.success){
     throw new Error(data.message||`Falha no envio (${r.status}).`);
   }
+
   return data;
+}
+
+function imageUrl(path){
+  return `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${path.split('/').map(encodeURIComponent).join('/')}`;
 }
 
 async function loadOptions(){
   try{
-    const r=await fetch(`${SUPABASE_URL}/rest/v1/opcoes?select=id,imagem1,imagem2,imagem3&aprovado=eq.true&order=created_at.asc,id.asc`,{headers:headers()});
+    const r=await fetch(
+      `${SUPABASE_URL}/rest/v1/opcoes?select=id,imagem1,imagem2,imagem3&aprovado=eq.true&order=created_at.asc,id.asc`,
+      {headers:headers()}
+    );
+
     if(!r.ok) throw new Error(await r.text());
+
     const rows=await r.json();
     countLabel.textContent=`${rows.length} ${rows.length===1?'opção':'opções'}`;
+
     if(!rows.length){
       optionsList.innerHTML='<div class="empty"><strong>Nenhuma camisa cadastrada</strong>Envie as três camisas dos cursos para começar.</div>';
       return;
     }
+
     optionsList.innerHTML='';
+
     rows.forEach((row,index)=>{
       const optionNumber=index+1;
       const card=document.createElement('article');
       card.className='option-card';
       card.innerHTML=`<div class="option-header"><h3 class="option-title"><span class="option-id">Opção ${optionNumber}</span></h3></div><div class="shirts-grid"></div>`;
+
       const grid=card.querySelector('.shirts-grid');
+
       [row.imagem1,row.imagem2,row.imagem3].forEach((path,i)=>{
-        const slot=document.createElement('div'); slot.className='shirt-slot';
+        const slot=document.createElement('div');
+        slot.className='shirt-slot';
+
         const img=document.createElement('img');
         img.className='shirt-image';
         img.src=imageUrl(path);
         img.alt=`Imagem ${i+1} da opção ${optionNumber}`;
         img.loading='lazy';
+
         slot.appendChild(img);
         grid.appendChild(slot);
       });
+
       optionsList.appendChild(card);
     });
   }catch(e){
-    console.error(e); countLabel.textContent='erro';
+    console.error(e);
+    countLabel.textContent='erro';
     optionsList.innerHTML='<div class="empty"><strong>Não foi possível carregar as opções</strong>Confira a tabela "opcoes" e as permissões do Supabase.</div>';
   }
 }
 
 submitBtn.addEventListener('click',async()=>{
   if(selectedFiles.some(f=>!f)) return;
+
   submitBtn.disabled=true;
   submitBtn.textContent='Enviando…';
+
   try{
     setStatus('Enviando as três camisas…');
+
     await enviarParaServidor();
+
     setStatus('Camisas enviadas com sucesso.','ok');
     await loadOptions();
-    setTimeout(()=>{overlay.classList.remove('open');resetForm();},700);
+
+    setTimeout(()=>{
+      overlay.classList.remove('open');
+      resetForm();
+    },700);
+
   }catch(e){
     console.error(e);
     setStatus(e.message||'Não foi possível concluir o envio.','err');
@@ -347,7 +367,6 @@ submitBtn.addEventListener('click',async()=>{
   }
 });
 
-function escapeHtml(str){const d=document.createElement('div');d.textContent=str;return d.innerHTML;}
 loadOptions();
 </script>
 

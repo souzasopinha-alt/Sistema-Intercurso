@@ -1,93 +1,77 @@
 <?php
 
 session_start();
+header('Content-Type: application/json; charset=utf-8');
 
-require_once 'db.php';
+require_once __DIR__ . '/db.php';
 
-header('Content-Type: application/json');
-
-$email = $_POST['email'] ?? '';
+$email = trim($_POST['email'] ?? '');
 $senha = $_POST['senha'] ?? '';
 
 if ($email === '' || $senha === '') {
     http_response_code(400);
-
     echo json_encode([
+        'sucesso' => false,
         'erro' => 'E-mail e senha são obrigatórios.'
-    ]);
-
+    ], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-$stmt = $pdo->prepare("
-    SELECT email, tipo, utilizado
-    FROM emails_autorizados
-    WHERE email = ?
-");
+try {
+    $stmt = $pdo->prepare(
+        'SELECT id, nome, email, senha, tipo
+         FROM usuarios
+         WHERE email = ?
+         LIMIT 1'
+    );
 
-$stmt->execute([$email]);
+    $stmt->execute([$email]);
+    $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
-$autorizado = $stmt->fetch();
+    if (!$usuario) {
+        http_response_code(401);
+        echo json_encode([
+            'sucesso' => false,
+            'erro' => 'E-mail ou senha incorretos.'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
 
-if (!$autorizado) {
-    http_response_code(401);
+    $senhaValida = password_verify($senha, (string)$usuario['senha']);
+
+    if (!$senhaValida) {
+        $senhaValida = hash_equals((string)$usuario['senha'], (string)$senha);
+    }
+
+    if (!$senhaValida) {
+        http_response_code(401);
+        echo json_encode([
+            'sucesso' => false,
+            'erro' => 'E-mail ou senha incorretos.'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    session_regenerate_id(true);
+
+    $_SESSION['usuario_id'] = (int)$usuario['id'];
+    $_SESSION['nome'] = $usuario['nome'];
+    $_SESSION['email'] = $usuario['email'];
+    $_SESSION['tipo'] = $usuario['tipo'];
 
     echo json_encode([
-        'erro' => 'E-mail não autorizado.'
-    ]);
+        'sucesso' => true,
+        'mensagem' => 'Login realizado com sucesso.',
+        'usuario_id' => (int)$usuario['id'],
+        'nome' => $usuario['nome'],
+        'email' => $usuario['email'],
+        'tipo' => $usuario['tipo']
+    ], JSON_UNESCAPED_UNICODE);
 
-    exit;
-}
-$stmt = $pdo->prepare("
-    SELECT id, nome, email, senha, tipo
-    FROM usuarios
-    WHERE email = ?
-");
-
-$stmt->execute([$email]);
-
-$usuario = $stmt->fetch();
-
-if (!$usuario) {
-    $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
-
-    $stmt = $pdo->prepare("
-        INSERT INTO usuarios (nome, email, senha, tipo, email_autorizado_id)
-        VALUES (?, ?, ?, ?, ?)
-    ");
-
-    $stmt->execute([
-        $email,
-        $email,
-        $senhaHash,
-        $autorizado['tipo'],
-        $autorizado['id']
-    ]);
-
-    $usuario = [
-        'id' => $pdo->lastInsertId(),
-        'nome' => $email,
-        'email' => $email,
-        'senha' => $senhaHash,
-        'tipo' => $autorizado['tipo']
-    ];
-} elseif (!password_verify($senha, $usuario['senha'])) {
-    http_response_code(401);
-
+} catch (Throwable $e) {
+    http_response_code(500);
     echo json_encode([
-        'erro' => 'E-mail ou senha incorretos.'
-    ]);
-
-    exit;
+        'sucesso' => false,
+        'erro' => 'Erro no servidor: ' . $e->getMessage()
+    ], JSON_UNESCAPED_UNICODE);
 }
-
-$_SESSION['usuario_id'] = $usuario['id'];
-$_SESSION['nome'] = $usuario['nome'];
-$_SESSION['email'] = $usuario['email'];
-$_SESSION['tipo'] = $usuario['tipo'];
-
-echo json_encode([
-    'sucesso' => true,
-    'mensagem' => 'Login realizado com sucesso.',
-    'tipo' => $usuario['tipo']
-]);
