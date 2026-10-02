@@ -166,14 +166,56 @@ formulario.addEventListener("submit", function (event) {
         return;
     }
 
-    mensagemSucesso.innerHTML =
-        "Pedido enviado com sucesso!<br>" +
-        `Curso: ${modelo.options[modelo.selectedIndex].text}<br>` +
-        `Número: ${numero.value}<br>` +
-        `Tamanho: ${tamanho.value}<br>` +
-        `Nome nas costas: ${nome}`;
+const dados = new URLSearchParams();
+
+dados.append("modelo", modelo.value);
+dados.append("numero", numero.value);
+dados.append("tamanho", tamanho.value);
+dados.append("nome_camisa", nome);
+
+fetch("../backend/criar_pedido.php", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: dados
+})
+.then(function(resposta) {
+    return resposta.json();
+})
+.then(function(resultado) {
+
+    if (resultado.sucesso) {
+
+        mensagemSucesso.innerHTML =
+            "Pedido enviado com sucesso!<br>" +
+            `Curso: ${modelo.options[modelo.selectedIndex].text}<br>` +
+            `Número: ${numero.value}<br>` +
+            `Tamanho: ${tamanho.value}<br>` +
+            `Nome nas costas: ${nome}`;
+
+        mensagemSucesso.style.display = "block";
+
+        setTimeout(function() {
+            window.location.href = "pagamento.html";
+        }, 1500);
+
+    } else {
+
+        mensagemSucesso.textContent =
+            resultado.erro || "Não foi possível criar o pedido.";
+
+        mensagemSucesso.style.display = "block";
+    }
+
+})
+.catch(function() {
+
+    mensagemSucesso.textContent =
+        "Não foi possível enviar o pedido.";
 
     mensagemSucesso.style.display = "block";
+});
 });
 
 [
