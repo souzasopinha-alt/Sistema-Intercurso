@@ -38,7 +38,6 @@ if (!$autorizado) {
 
     exit;
 }
-
 $stmt = $pdo->prepare("
     SELECT id, nome, email, senha, tipo
     FROM usuarios

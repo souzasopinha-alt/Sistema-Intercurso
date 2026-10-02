@@ -194,3 +194,4 @@ try {
     error_log('upload_camisas.php: ' . $e->getMessage());
     resposta(false, $e->getMessage(), 500);
 }
+// coemntário.
