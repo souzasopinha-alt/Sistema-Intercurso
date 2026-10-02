@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin · Pagamentos</title>
+  <link rel="stylesheet" href="../Projeto/pagamento.css">
+  <style>
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; }
+    .tab { padding: 8px 16px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink); }
+    .tab[aria-pressed="true"] { background: var(--mint-strong); border-color: var(--mint-strong); color: #fff; }
+    .list { display: grid; gap: 14px; }
+    .item { padding: 18px 20px; background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+    .item-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+    .item-head h2 { margin: 0; font-size: 18px; }
+    .pill { padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .pill--em_analise { background: #fff3cc; color: #6b5614; }
+    .pill--aprovado { background: var(--mint); color: var(--mint-deep); }
+    .pill--recusado { background: #f8d9d4; color: #8a2a20; }
+    .meta { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 8px 0; color: var(--muted); font-size: 13px; }
+    .desc { margin: 8px 0; padding: 10px 12px; background: var(--soft); border-radius: 8px; white-space: pre-wrap; }
+    .alert { margin: 8px 0; color: #8a2a20; font-weight: 600; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .btn { padding: 9px 16px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); font-weight: 600; }
+    .btn--ok { background: var(--mint-strong); border-color: var(--mint-strong); color: #fff; }
+    .btn--no { background: #c0392b; border-color: #c0392b; color: #fff; }
+    .btn:disabled { opacity: .6; cursor: wait; }
+    .reject-box { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+    .reject-box input { flex: 1 1 240px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; }
+    dialog { width: min(920px, 94vw); height: 86vh; padding: 0; border: 0; border-radius: 14px; overflow: hidden; }
+    dialog::backdrop { background: rgba(0, 0, 0, .55); }
+    dialog[open] { display: flex; flex-direction: column; }
+    .viewer-bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+    .viewer-body { flex: 1; display: grid; place-items: center; overflow: auto; background: var(--soft); }
+    .viewer-body img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .viewer-body iframe { width: 100%; height: 100%; border: 0; }
+    .empty { padding: 30px; text-align: center; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#"><span class="brand-mark" aria-hidden="true">✦</span><span>EEEP <strong>Joaquim Albano</strong></span></a>
+    <div class="secure-label">painel do administrador</div>
+  </header>
+
+  <main class="page-shell">
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">pagamentos</p>
+        <h1>Conferir comprovantes</h1>
+        <p class="lead">Veja o comprovante enviado e aprove ou recuse o pagamento do pedido.</p>
+      </div>
+    </div>
+
+    <div class="tabs" id="tabs" role="group" aria-label="Filtrar por status"></div>
+    <p class="form-error" id="msg" role="alert"></p>
+    <div class="list" id="list"></div>
+  </main>
+
+  <dialog id="viewer" aria-label="Comprovante">
+    <div class="viewer-bar"><strong id="viewer-title"></strong><button class="btn" id="viewer-close" type="button">Fechar</button></div>
+    <div class="viewer-body" id="viewer-body"></div>
+  </dialog>
+
+  <script>
+    (() => {
+      const API = new URL('../api', location.href).href.replace(/\/$/, '');
+      const FILTROS = [['em_analise', 'Em análise'], ['recusado', 'Recusados'], ['aprovado', 'Aprovados'], ['', 'Todos']];
+      const ROTULO = { em_analise: 'Em análise', aprovado: 'Aprovado', recusado: 'Recusado' };
+      const $ = s => document.querySelector(s);
+      const list = $('#list'), msg = $('#msg'), viewer = $('#viewer'), viewerBody = $('#viewer-body');
+      let filtro = 'em_analise';
+
+      // Cria elementos com textContent (nada vindo do banco entra como HTML).
+      const el = (tag, cls, text) => {
+        const node = document.createElement(tag);
+        if (cls) node.className = cls;
+        if (text !== undefined) node.textContent = text;
+        return node;
+      };
+
+      async function api(path, options = {}) {
+        const response = await fetch(API + path, { credentials: 'same-origin', ...options });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.erro || `Erro ${response.status}`);
+        return data;
+      }
+
+      const fmtData = v => v ? new Date(v.replace(' ', 'T')).toLocaleString('pt-BR') : '';
+      const fmtValor = v => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+      function renderTabs() {
+        const box = $('#tabs');
+        box.replaceChildren(...FILTROS.map(([valor, rotulo]) => {
+          const b = el('button', 'tab', rotulo);
+          b.type = 'button';
+          b.setAttribute('aria-pressed', String(valor === filtro));
+          b.onclick = () => { filtro = valor; renderTabs(); load(); };
+          return b;
+        }));
+      }
+
+      function abrirComprovante(c) {
+        const url = `${API}/pedidos/${c.pedido_id}/comprovante?id=${c.id}`;
+        $('#viewer-title').textContent = `Pedido #${c.pedido_id}`;
+        if (c.mime_type === 'application/pdf') {
+          const f = document.createElement('iframe');
+          f.src = url; f.title = 'Comprovante em PDF';
+          viewerBody.replaceChildren(f);
+        } else {
+          const i = document.createElement('img');
+          i.src = url; i.alt = 'Comprovante de pagamento';
+          viewerBody.replaceChildren(i);
+        }
+        viewer.showModal();
+      }
+
+      async function decidir(c, acao, motivo, botoes) {
+        botoes.forEach(b => b.disabled = true);
+        msg.textContent = '';
+        try {
+          await api(`/pedidos/${c.pedido_id}/pagamento`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ acao, motivo })
+          });
+          load();
+        } catch (e) {
+          msg.textContent = e.message;
+          botoes.forEach(b => b.disabled = false);
+        }
+      }
+
+      function renderItem(c) {
+        const item = el('article', 'item');
+
+        const head = el('div', 'item-head');
+        head.append(el('h2', '', `Pedido #${c.pedido_id}`), el('span', `pill pill--${c.status}`, ROTULO[c.status]));
+        item.append(head);
+
+        const meta = el('div', 'meta');
+        meta.append(
+          el('span', '', c.metodo_pagamento === 'pix' ? 'PIX' : 'Dinheiro'),
+          el('span', '', fmtValor(c.total)),
+          el('span', '', `Enviado em ${fmtData(c.criado_em)}`)
+        );
+        if (c.analisado_em) meta.append(el('span', '', `Analisado em ${fmtData(c.analisado_em)}`));
+        item.append(meta);
+
+        if (c.descricao) item.append(el('p', 'desc', c.descricao));
+        if (c.motivo_recusa) item.append(el('p', 'alert', `Motivo da recusa: ${c.motivo_recusa}`));
+        if (Number(c.duplicados) > 0) {
+          item.append(el('p', 'alert', '⚠ Este mesmo arquivo já foi enviado em outro comprovante. Confira antes de aprovar.'));
+        }
+
+        const actions = el('div', 'actions');
+        if (Number(c.tem_arquivo)) {
+          const ver = el('button', 'btn', 'Ver comprovante');
+          ver.type = 'button';
+          ver.onclick = () => abrirComprovante(c);
+          actions.append(ver);
+        } else {
+          actions.append(el('span', 'muted', 'Pagamento em dinheiro: sem comprovante anexado.'));
+        }
+
+        if (c.status === 'em_analise') {
+          const aprovar = el('button', 'btn btn--ok', 'Aprovar');
+          const recusar = el('button', 'btn btn--no', 'Recusar');
+          aprovar.type = recusar.type = 'button';
+          aprovar.onclick = () => decidir(c, 'aprovar', null, [aprovar, recusar]);
+          recusar.onclick = () => {
+            const box = el('div', 'reject-box');
+            const motivo = el('input');
+            motivo.placeholder = 'Motivo da recusa (obrigatório)';
+            motivo.maxLength = 255;
+            const ok = el('button', 'btn btn--no', 'Confirmar recusa');
+            const cancelar = el('button', 'btn', 'Cancelar');
+            ok.type = cancelar.type = 'button';
+            ok.onclick = () => {
+              if (motivo.value.trim().length < 3) { motivo.focus(); return; }
+              decidir(c, 'recusar', motivo.value.trim(), [ok, cancelar]);
+            };
+            cancelar.onclick = () => item.replaceWith(renderItem(c));
+            box.append(motivo, ok, cancelar);
+            aprovar.remove();
+            recusar.replaceWith(box);
+            motivo.focus();
+          };
+          actions.append(aprovar, recusar);
+        }
+        item.append(actions);
+        return item;
+      }
+
+      async function load() {
+        msg.textContent = '';
+        try {
+          const { dados } = await api('/admin/pagamentos' + (filtro ? `?status=${filtro}` : ''));
+          list.replaceChildren(...(dados.length ? dados.map(renderItem) : [el('p', 'empty', 'Nenhum pagamento nesta lista.')]));
+        } catch (e) {
+          list.replaceChildren();
+          msg.textContent = e.message;
+        }
+      }
+
+      $('#viewer-close').onclick = () => viewer.close();
+      viewer.addEventListener('close', () => viewerBody.replaceChildren());
+      viewer.addEventListener('click', e => { if (e.target === viewer) viewer.close(); });
+
+      renderTabs();
+      load();
+    })();
+  </script>
+</body>
+</html>
