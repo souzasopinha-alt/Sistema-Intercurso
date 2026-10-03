@@ -50,9 +50,7 @@ formulario.addEventListener("submit", function(event) {
             mensagem.className = "sucesso";
 
             if (resultado.tipo === "ADMIN") {
-
-                window.location.href = "../backend/admin.php";
-
+                window.location.href = "admin_frontend/admin.html";
             } else if (resultado.tipo === "ALUNO") {
 
                 window.location.href = "pedido.html";

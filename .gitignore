@@ -1,0 +1,2 @@
+backend/pagamentos/uploads/*
+!backend/pagamentos/uploads/.gitkeep

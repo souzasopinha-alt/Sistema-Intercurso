@@ -21,7 +21,12 @@ $numero = $_POST['numero'] ?? '';
 $tamanho = $_POST['tamanho'] ?? '';
 $nomeCamisa = $_POST['nome_camisa'] ?? '';
 
-if ($modelo === '' || $numero === '' || $tamanho === '' || $nomeCamisa === '') {
+if (
+    $modelo === '' ||
+    $numero === '' ||
+    $tamanho === '' ||
+    $nomeCamisa === ''
+) {
     http_response_code(400);
 
     echo json_encode([
@@ -32,7 +37,8 @@ if ($modelo === '' || $numero === '' || $tamanho === '' || $nomeCamisa === '') {
 }
 
 try {
-    $stmt = $pdo->prepare("
+
+    $sql = "
         INSERT INTO pedidos (
             usuario_id,
             modelo,
@@ -41,7 +47,9 @@ try {
             nome_camisa
         )
         VALUES (?, ?, ?, ?, ?)
-    ");
+    ";
+
+    $stmt = $pdo->prepare($sql);
 
     $stmt->execute([
         $_SESSION['usuario_id'],
@@ -58,9 +66,11 @@ try {
     ]);
 
 } catch (PDOException $e) {
+
     http_response_code(500);
 
     echo json_encode([
-        'erro' => 'Erro ao criar o pedido.'
+    'erro' => 'Erro ao criar pedido.',
+    'detalhes' => $e->getMessage()
     ]);
 }

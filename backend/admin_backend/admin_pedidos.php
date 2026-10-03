@@ -2,11 +2,10 @@
 
 session_start();
 
-require_once 'db.php';
+require_once '../db.php';
 
 header('Content-Type: application/json');
 
-// Verifica se está logado
 if (!isset($_SESSION['tipo'])) {
     http_response_code(401);
 
@@ -17,7 +16,6 @@ if (!isset($_SESSION['tipo'])) {
     exit;
 }
 
-// Verifica se é administrador
 if ($_SESSION['tipo'] !== 'ADMIN') {
     http_response_code(403);
 
@@ -34,15 +32,43 @@ try {
         SELECT
             pedidos.id,
             usuarios.nome AS aluno,
+            usuarios.email,
             pedidos.modelo,
             pedidos.numero,
             pedidos.tamanho,
             pedidos.nome_camisa,
             pedidos.data_pedido,
-            pedidos.status_pagamento
+            pedidos.status_pagamento,
+
+            (
+                SELECT comprovantes.id
+                FROM comprovantes
+                WHERE comprovantes.pedido_id = pedidos.id
+                ORDER BY comprovantes.data_envio DESC, comprovantes.id DESC
+                LIMIT 1
+            ) AS comprovante_id,
+
+            (
+                SELECT comprovantes.arquivo
+                FROM comprovantes
+                WHERE comprovantes.pedido_id = pedidos.id
+                ORDER BY comprovantes.data_envio DESC, comprovantes.id DESC
+                LIMIT 1
+            ) AS comprovante_arquivo,
+
+            (
+                SELECT comprovantes.data_envio
+                FROM comprovantes
+                WHERE comprovantes.pedido_id = pedidos.id
+                ORDER BY comprovantes.data_envio DESC, comprovantes.id DESC
+                LIMIT 1
+            ) AS comprovante_data
+
         FROM pedidos
+
         INNER JOIN usuarios
             ON pedidos.usuario_id = usuarios.id
+
         WHERE 1=1
     ";
 
@@ -54,7 +80,7 @@ try {
         $parametros['status'] = $_GET['status'];
     }
 
-    // Filtro por modelo
+    // Filtro por modelo/curso
     if (!empty($_GET['modelo'])) {
         $sql .= " AND pedidos.modelo = :modelo";
         $parametros['modelo'] = $_GET['modelo'];
@@ -69,9 +95,10 @@ try {
     $sql .= " ORDER BY pedidos.data_pedido DESC";
 
     $stmt = $pdo->prepare($sql);
+
     $stmt->execute($parametros);
 
-    $pedidos = $stmt->fetchAll();
+    $pedidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode($pedidos);
 

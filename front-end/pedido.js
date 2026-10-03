@@ -121,7 +121,7 @@ modelo.addEventListener("change", function () {
 
 definirFundo("img/branco.jpeg");
 
-formulario.addEventListener("submit", function (event) {
+formulario.addEventListener("submit", async function (event) {
     event.preventDefault();
 
     erroModelo.textContent = "";
@@ -161,61 +161,44 @@ formulario.addEventListener("submit", function (event) {
         erroNome.textContent = "O nome deve ter pelo menos 2 caracteres.";
         formularioValido = false;
     }
+if (!formularioValido) {
+    return;
+}
 
-    if (!formularioValido) {
-        return;
-    }
-
-const dados = new URLSearchParams();
+const dados = new FormData();
 
 dados.append("modelo", modelo.value);
 dados.append("numero", numero.value);
 dados.append("tamanho", tamanho.value);
 dados.append("nome_camisa", nome);
 
-fetch("../backend/criar_pedido.php", {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-    },
-    body: dados
-})
-.then(function(resposta) {
-    return resposta.json();
-})
-.then(function(resultado) {
+try {
 
-    if (resultado.sucesso) {
+    const resposta = await fetch("../../backend/criar_pedido.php", {
+        method: "POST",
+        body: dados,
+        credentials: "include"
+    });
 
-        mensagemSucesso.innerHTML =
-            "Pedido enviado com sucesso!<br>" +
-            `Curso: ${modelo.options[modelo.selectedIndex].text}<br>` +
-            `Número: ${numero.value}<br>` +
-            `Tamanho: ${tamanho.value}<br>` +
-            `Nome nas costas: ${nome}`;
+    const resultado = await resposta.json();
 
-        mensagemSucesso.style.display = "block";
-
-        setTimeout(function() {
-            window.location.href = "pagamento.html";
-        }, 1500);
-
-    } else {
-
-        mensagemSucesso.textContent =
-            resultado.erro || "Não foi possível criar o pedido.";
-
-        mensagemSucesso.style.display = "block";
+    if (!resposta.ok) {
+        throw new Error(resultado.erro || "Erro ao criar pedido.");
     }
 
-})
-.catch(function() {
+    sessionStorage.setItem("pedido_id", resultado.pedido_id);
 
-    mensagemSucesso.textContent =
+    window.location.href = "pagamento.html";
+
+} catch (erro) {
+
+    console.error(erro);
+
+    mensagemSucesso.innerHTML =
         "Não foi possível enviar o pedido.";
 
     mensagemSucesso.style.display = "block";
-});
+}
 });
 
 [

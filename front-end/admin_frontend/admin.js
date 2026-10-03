@@ -7,14 +7,14 @@
 */
 
 const ENDPOINTS = {
-  auth: 'auth/verificar_sessao.php',
-  logout: 'auth/logout.php',
-  pedidos: 'pedidos.php',
-  resumo: 'resumo.php',
-  aprovar: 'pagamentos/aprovar.php',
-  recusar: 'pagamentos/recusar.php',
-  usuarios: 'usuarios.php',
-  votos: '../../backend/admin_backend/admin_votos.php'
+    auth: '../../backend/admin_backend/auth/verificar_sessao.php',
+    logout: '../../backend/admin_backend/auth/logout.php',
+    pedidos: '../../backend/admin_backend/admin_pedidos.php',
+    resumo: '../../backend/admin_backend/admin.php',
+    votos: '../../backend/admin_backend/admin_votos.php',
+    aprovar: '../../backend/pagamentos/aprovar.php',
+    recusar: '../../backend/pagamentos/recusar.php',
+    usuarios: '../../backend/usuarios.php'
 };
 
 let pedidosCache = [];
@@ -43,7 +43,11 @@ function normalizarPedido(p) {
     tamanho: p.tamanho ?? '',
     nomeCamisa: p.nome_camisa ?? p.nomeCamisa ?? '',
     status: p.status_pagamento ?? p.status ?? 'PENDENTE',
-    data: p.data_pedido ?? p.data ?? ''
+    data: p.data_pedido ?? p.data ?? '',
+
+    comprovanteId: p.comprovante_id ?? null,
+    comprovanteArquivo: p.comprovante_arquivo ?? null,
+    comprovanteData: p.comprovante_data ?? null
   };
 }
 
@@ -68,10 +72,35 @@ function formatarData(v) {
 }
 
 async function buscarPedidos() {
-  const resp = await fetch(ENDPOINTS.pedidos, { credentials: 'include' });
-  if (!resp.ok) throw new Error('Não foi possível carregar pedidos.');
-  const dados = await resp.json();
-  pedidosCache = Array.isArray(dados) ? dados.map(normalizarPedido) : [];
+  const resp = await fetch(ENDPOINTS.pedidos, {
+    credentials: 'include'
+  });
+
+  const texto = await resp.text();
+
+  console.log('Status:', resp.status);
+  console.log('Resposta de admin_pedidos.php:', texto);
+
+  if (!resp.ok) {
+    throw new Error(
+      `Erro ${resp.status} ao carregar pedidos: ${texto}`
+    );
+  }
+
+  let dados;
+
+  try {
+    dados = JSON.parse(texto);
+  } catch (e) {
+    throw new Error(
+      'admin_pedidos.php não retornou JSON válido. Veja a resposta no Console.'
+    );
+  }
+
+  pedidosCache = Array.isArray(dados)
+    ? dados.map(normalizarPedido)
+    : [];
+
   return pedidosCache;
 }
 
@@ -83,14 +112,102 @@ async function atualizarPedidos() {
     pedidosCache = [];
     mostrarToast('Não foi possível carregar os pedidos.');
   }
+
   renderPedidos();
   renderPendentes();
   atualizarResumoLocal();
+  atualizarRelatorio();
+}
+
+
+async function atualizarRelatorio() {
+  try {
+    const resp = await fetch(ENDPOINTS.resumo, {
+      credentials: 'include'
+    });
+
+    if (!resp.ok) {
+      throw new Error('Erro ao carregar relatório.');
+    }
+
+    const dados = await resp.json();
+
+    const reportModelo = document.getElementById('reportModelo');
+    const reportTamanho = document.getElementById('reportTamanho');
+    const reportStatus = document.getElementById('reportStatus');
+
+    // ==============================
+    // POR CURSO
+    // ==============================
+
+    reportModelo.innerHTML = (dados.por_modelo || []).map(item => {
+  const curso = String(item.modelo || '').toLowerCase();
+
+  let classeCurso = 'curso-outro';
+
+  if (curso === 'informatica') {
+    classeCurso = 'curso-informatica';
+  } else if (curso === 'contabilidade') {
+    classeCurso = 'curso-contabilidade';
+  } else if (curso === 'enfermagem') {
+    classeCurso = 'curso-enfermagem';
+  }
+
+  return `
+    <li class="${classeCurso}">
+      <span>${esc(nomeCurso(item.modelo))}</span>
+      <strong>${esc(item.quantidade)}</strong>
+    </li>
+  `;
+}).join('');
+
+    // ==============================
+    // POR TAMANHO
+    // ==============================
+
+    reportTamanho.innerHTML = (dados.por_tamanho || []).map(item => `
+      <li>
+        <span>${esc(item.tamanho || '—')}</span>
+        <strong>${esc(item.quantidade)}</strong>
+      </li>
+    `).join('');
+
+    // ==============================
+    // POR STATUS
+    // ==============================
+
+    const nomesStatus = {
+      PENDENTE: 'Pendente',
+      APROVADO: 'Aprovado',
+      RECUSADO: 'Recusado'
+    };
+
+    reportStatus.innerHTML = (dados.por_status || []).map(item => `
+      <li>
+        <span>${esc(
+          nomesStatus[item.status_pagamento] || item.status_pagamento
+        )}</span>
+        <strong>${esc(item.quantidade)}</strong>
+      </li>
+    `).join('');
+
+  } catch (e) {
+    console.error('Erro ao atualizar relatório:', e);
+
+    document.getElementById('reportModelo').innerHTML =
+      '<li>Não foi possível carregar.</li>';
+
+    document.getElementById('reportTamanho').innerHTML =
+      '<li>Não foi possível carregar.</li>';
+
+    document.getElementById('reportStatus').innerHTML =
+      '<li>Não foi possível carregar.</li>';
+  }
 }
 
 function filtrarPedidos() {
   const status = document.getElementById('filtroStatus').value;
-  const curso = document.getElementById('filtroCurso').value;
+  const curso = document.getElementById('filtroModelo').value;
   const tamanho = document.getElementById('filtroTamanho').value;
 
   return pedidosCache.filter(p =>
@@ -141,7 +258,7 @@ function renderPedidos() {
 }
 
 function renderPendentes() {
-  const box = document.getElementById('listaPendentes');
+  const box = document.getElementById('listaPagamentos');
   const lista = pedidosCache.filter(p => p.status === 'PENDENTE');
 
   if (!lista.length) {
@@ -188,16 +305,115 @@ function abrirConfirmacao(id, acao) {
   if (!p) return;
 
   pedidoSelecionado = { id: p.id, acao };
-  document.getElementById('pedidoDetalhe').innerHTML = `
-    <div class="payment-card__row"><span>Aluno</span><strong>${esc(p.aluno || '—')}</strong></div>
-    <div class="payment-card__row"><span>E-mail</span><strong>${esc(p.email || '—')}</strong></div>
-    <div class="payment-card__row"><span>Curso / modelo</span><strong>${esc(nomeCurso(p.modelo))}</strong></div>
-    <div class="payment-card__row"><span>Número</span><strong>${esc(p.numero || '—')}</strong></div>
-    <div class="payment-card__row"><span>Tamanho</span><strong>${esc(p.tamanho || '—')}</strong></div>
-    <div class="payment-card__row"><span>Nome nas costas</span><strong>${esc(p.nomeCamisa || '—')}</strong></div>
-    <div class="payment-card__row"><span>Status atual</span><strong>${statusPill(p.status)}</strong></div>
-    <div class="payment-card__row"><span>Data do pedido</span><strong>${esc(formatarData(p.data))}</strong></div>
+  const comprovanteUrl = p.comprovanteId
+  ? `../../backend/pagamentos/visualizar_comprovante.php?id=${encodeURIComponent(p.comprovanteId)}`
+  : null;
+
+let comprovanteHtml = '';
+
+if (!p.comprovanteId) {
+  comprovanteHtml = `
+    <div class="comprovante-modal">
+      <h3>Comprovante de pagamento</h3>
+      <p class="comprovante-modal__vazio">
+        Nenhum comprovante enviado.
+      </p>
+    </div>
   `;
+} else if (
+  p.comprovanteArquivo &&
+  /\.(jpg|jpeg|png|webp)$/i.test(p.comprovanteArquivo)
+) {
+  comprovanteHtml = `
+    <div class="comprovante-modal">
+      <h3>Comprovante de pagamento</h3>
+
+      <div class="comprovante-modal__visualizacao">
+        <img
+          src="${comprovanteUrl}"
+          alt="Comprovante de pagamento"
+          class="comprovante-modal__imagem"
+        >
+      </div>
+    </div>
+  `;
+} else if (
+  p.comprovanteArquivo &&
+  /\.pdf$/i.test(p.comprovanteArquivo)
+) {
+  comprovanteHtml = `
+    <div class="comprovante-modal">
+      <h3>Comprovante de pagamento</h3>
+
+      <div class="comprovante-modal__visualizacao">
+        <iframe
+          src="${comprovanteUrl}"
+          class="comprovante-modal__pdf"
+          title="Comprovante de pagamento"
+        ></iframe>
+      </div>
+    </div>
+  `;
+} else {
+  comprovanteHtml = `
+    <div class="comprovante-modal">
+      <h3>Comprovante de pagamento</h3>
+      <p>
+        <a
+          href="${comprovanteUrl}"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Abrir comprovante
+        </a>
+      </p>
+    </div>
+  `;
+}
+
+document.getElementById('pagamentoDetalhe').innerHTML = `
+  <div class="payment-card__row">
+    <span>Aluno: </span>
+    <strong>${esc(p.aluno || '—')}</strong>
+  </div>
+
+  <div class="payment-card__row">
+    <span>E-mail: </span>
+    <strong>${esc(p.email || '—')}</strong>
+  </div>
+
+  <div class="payment-card__row">
+    <span>Curso / modelo: </span>
+    <strong>${esc(nomeCurso(p.modelo))}</strong>
+  </div>
+
+  <div class="payment-card__row">
+    <span>Número: </span>
+    <strong>${esc(p.numero || '—')}</strong>
+  </div>
+
+  <div class="payment-card__row">
+    <span>Tamanho: </span>
+    <strong>${esc(p.tamanho || '—')}</strong>
+  </div>
+
+  <div class="payment-card__row">
+    <span>Nome nas costas: </span>
+    <strong>${esc(p.nomeCamisa || '—')}</strong>
+  </div>
+
+  <div class="payment-card__row">
+    <span>Status atual: </span>
+    <strong>${statusPill(p.status)}</strong>
+  </div>
+
+  <div class="payment-card__row">
+    <span>Data do pedido: </span>
+    <strong>${esc(formatarData(p.data))}</strong>
+  </div>
+
+  ${comprovanteHtml}
+`;
 
   document.getElementById('btnAprovarModal').style.display = acao === 'APROVADO' ? '' : 'none';
   document.getElementById('btnRecusarModal').style.display = acao === 'RECUSADO' ? '' : 'none';
@@ -205,13 +421,13 @@ function abrirConfirmacao(id, acao) {
 }
 
 function abrirModal() {
-  const m = document.getElementById('modalPedido');
+  const m = document.getElementById('modalPagamento');
   m.classList.add('is-open');
   m.setAttribute('aria-hidden', 'false');
 }
 
 function fecharModal() {
-  const m = document.getElementById('modalPedido');
+  const m = document.getElementById('modalPagamento');
   m.classList.remove('is-open');
   m.setAttribute('aria-hidden', 'true');
   pedidoSelecionado = null;
@@ -318,7 +534,7 @@ function renderRelatorio() {
     ).join('') || '<li><span>Sem dados</span></li>';
   };
 
-  preencher('reportCurso', contar('modelo'), nomeCurso);
+  preencher('reportModelo', contar('modelo'), nomeCurso);
   preencher('reportTamanho', contar('tamanho'));
   preencher('reportStatus', contar('status'), nomeStatus);
 }
@@ -329,7 +545,7 @@ async function protegerPainel() {
     if (!resp.ok) throw new Error();
     const d = await resp.json();
     if (!d.logado || !d.admin) {
-      window.location.href = 'login.html';
+      window.location.href = '../login.html';
       return;
     }
     document.getElementById('userName').textContent = d.nome || 'Administrador';
@@ -344,7 +560,7 @@ async function sair() {
   try {
     await fetch(ENDPOINTS.logout, { method:'POST', credentials:'include' });
   } finally {
-    window.location.href = 'login.html';
+    window.location.href = '../login.html';
   }
 }
 
@@ -369,13 +585,13 @@ function configurar() {
     });
   });
 
-  ['filtroStatus','filtroCurso','filtroTamanho'].forEach(id =>
+  ['filtroStatus','filtroModelo','filtroTamanho'].forEach(id =>
     document.getElementById(id).addEventListener('change', renderPedidos)
   );
 
   document.getElementById('btnLimparFiltros').addEventListener('click', () => {
     document.getElementById('filtroStatus').value = '';
-    document.getElementById('filtroCurso').value = '';
+    document.getElementById('filtroModelo').value = '';
     document.getElementById('filtroTamanho').value = '';
     renderPedidos();
   });
