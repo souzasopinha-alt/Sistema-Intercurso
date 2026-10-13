@@ -53,13 +53,10 @@ formulario.addEventListener("submit", function(event) {
                 window.location.href = "admin_frontend/admin.html";
             } else if (resultado.tipo === "ALUNO") {
 
-                window.location.href = "pedido.html";
+                window.location.href = "perfil.html";
 
             } else if (resultado.tipo === "LIDER") {
-
-                // Por enquanto, permanece na página.
-                // Depois podemos criar o painel do líder.
-
+                window.location.href = "admin_frontend/admin.html";
             }
 
         } else {

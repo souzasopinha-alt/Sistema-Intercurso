@@ -2,7 +2,7 @@
 
 session_start();
 
-require_once 'db.php';
+require_once __DIR__ . '/db.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -11,26 +11,39 @@ $senha = $_POST['senha'] ?? '';
 
 if ($email === '' || $senha === '') {
     http_response_code(400);
-    echo json_encode(['erro' => 'E-mail e senha são obrigatórios.']);
+    echo json_encode([
+        'sucesso' => false,
+        'erro' => 'E-mail e senha são obrigatórios.'
+    ], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 try {
+    $pdo->beginTransaction();
+
+    // Bloqueia o registro durante a validação do primeiro acesso.
     $stmt = $pdo->prepare("
         SELECT id, email, nome, curso, serie, tipo, utilizado
         FROM emails_autorizados
         WHERE email = ?
         LIMIT 1
+        FOR UPDATE
     ");
     $stmt->execute([$email]);
-    $autorizado = $stmt->fetch();
+    $autorizado = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$autorizado) {
+        $pdo->rollBack();
+
         http_response_code(401);
-        echo json_encode(['erro' => 'E-mail não autorizado.']);
+        echo json_encode([
+            'sucesso' => false,
+            'erro' => 'E-mail não autorizado.'
+        ], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
+    // Verifica se já existe uma conta para esse e-mail.
     $stmt = $pdo->prepare("
         SELECT id, nome, email, senha, tipo, curso, serie
         FROM usuarios
@@ -38,9 +51,33 @@ try {
         LIMIT 1
     ");
     $stmt->execute([$email]);
-    $usuario = $stmt->fetch();
+    $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$usuario) {
+    if ($usuario) {
+        // Usuários existentes continuam entrando com sua senha.
+        if (!password_verify($senha, $usuario['senha'])) {
+            $pdo->rollBack();
+
+            http_response_code(401);
+            echo json_encode([
+                'sucesso' => false,
+                'erro' => 'E-mail ou senha incorretos.'
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+    } else {
+        // Um e-mail já utilizado não pode criar outra conta.
+        if ((int) $autorizado['utilizado'] !== 0) {
+            $pdo->rollBack();
+
+            http_response_code(401);
+            echo json_encode([
+                'sucesso' => false,
+                'erro' => 'Este e-mail autorizado já foi utilizado e não possui uma conta correspondente. Procure o administrador.'
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
         $nome = trim($autorizado['nome'] ?? '');
 
         if ($nome === '') {
@@ -51,7 +88,13 @@ try {
 
         $stmt = $pdo->prepare("
             INSERT INTO usuarios (
-                nome, email, curso, serie, senha, tipo, email_autorizado_id
+                nome,
+                email,
+                curso,
+                serie,
+                senha,
+                tipo,
+                email_autorizado_id
             )
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
@@ -66,28 +109,42 @@ try {
             $autorizado['id']
         ]);
 
+        // Só marca como utilizado se ainda estiver disponível.
         $stmt = $pdo->prepare("
             UPDATE emails_autorizados
             SET utilizado = 1
             WHERE id = ?
+              AND utilizado = 0
         ");
         $stmt->execute([$autorizado['id']]);
 
-        $usuario = [
-            'id' => $pdo->lastInsertId(),
-            'nome' => $nome,
-            'email' => $email,
-            'senha' => $senhaHash,
-            'tipo' => $autorizado['tipo'],
-            'curso' => $autorizado['curso'],
-            'serie' => $autorizado['serie']
-        ];
-    } elseif (!password_verify($senha, $usuario['senha'])) {
-        http_response_code(401);
-        echo json_encode(['erro' => 'E-mail ou senha incorretos.']);
-        exit;
+        if ($stmt->rowCount() !== 1) {
+            throw new RuntimeException(
+                'Não foi possível confirmar o uso do e-mail autorizado.'
+            );
+        }
+
+        $stmt = $pdo->prepare("
+    SELECT id, nome, email, tipo
+    FROM usuarios
+    WHERE email = ?
+    LIMIT 1
+");
+$stmt->execute([$email]);
+
+$usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$usuario) {
+    throw new RuntimeException(
+        'A conta foi criada, mas não foi possível recuperá-la.'
+    );
+}
     }
 
+    // Confirma a criação da conta e a atualização do e-mail em conjunto.
+    $pdo->commit();
+
+    // Regenera o identificador da sessão após autenticar.
     session_regenerate_id(true);
 
     $_SESSION['usuario_id'] = $usuario['id'];
@@ -99,9 +156,18 @@ try {
         'sucesso' => true,
         'mensagem' => 'Login realizado com sucesso.',
         'tipo' => $usuario['tipo']
-    ]);
-} catch (PDOException $e) {
+    ], JSON_UNESCAPED_UNICODE);
+
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
     error_log('Erro no login: ' . $e->getMessage());
+
     http_response_code(500);
-    echo json_encode(['erro' => 'Erro interno ao realizar login.']);
+    echo json_encode([
+        'sucesso' => false,
+        'erro' => 'Erro interno ao realizar login.'
+    ], JSON_UNESCAPED_UNICODE);
 }
