@@ -71,28 +71,21 @@ try {
      * de comprovante.
      */
     if ($metodoPagamento === 'dinheiro') {
+    $stmt = $pdo->prepare("
+        UPDATE pedidos
+        SET metodo_pagamento = 'DINHEIRO'
+        WHERE id = ? AND usuario_id = ?
+    ");
+    $stmt->execute([$pedidoId, $usuarioId]);
 
-        echo json_encode([
-            'sucesso' => true,
-            'mensagem' => 'Pagamento em dinheiro registrado.'
-        ]);
-
-        exit;
+    echo json_encode([
+        'sucesso' => true,
+        'mensagem' => 'Pagamento em dinheiro registrado.'
+    ]);
+    exit;
     }
 
-    /*
-     * PIX precisa de comprovante.
-     */
-    if ($metodoPagamento !== 'pix') {
-        http_response_code(400);
 
-        echo json_encode([
-            'sucesso' => false,
-            'erro' => 'Método de pagamento inválido.'
-        ]);
-
-        exit;
-    }
 
     if (!isset($_FILES['comprovante'])) {
         http_response_code(400);
@@ -188,18 +181,32 @@ try {
      */
     $caminhoBanco = 'backend/pagamentos/uploads/' . $nomeArquivo;
 
+    $pdo->beginTransaction();
+
+    try {
     $stmt = $pdo->prepare("
-        INSERT INTO comprovantes (
-            pedido_id,
-            arquivo
-        )
+        INSERT INTO comprovantes (pedido_id, arquivo)
         VALUES (?, ?)
     ");
+    $stmt->execute([$pedidoId, $caminhoBanco]);
 
-    $stmt->execute([
-        $pedidoId,
-        $caminhoBanco
-    ]);
+    $stmt = $pdo->prepare("
+        UPDATE pedidos
+        SET metodo_pagamento = 'PIX'
+        WHERE id = ? AND usuario_id = ?
+    ");
+    $stmt->execute([$pedidoId, $usuarioId]);
+
+    $pdo->commit();
+    } catch (PDOException $e) {
+    $pdo->rollBack();
+
+    if (isset($caminhoCompleto) && file_exists($caminhoCompleto)) {
+        unlink($caminhoCompleto);
+    }
+
+    throw $e;
+    }
 
     echo json_encode([
         'sucesso' => true,

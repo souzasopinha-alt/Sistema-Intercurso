@@ -43,6 +43,7 @@ function normalizarPedido(p) {
     tamanho: p.tamanho ?? '',
     nomeCamisa: p.nome_camisa ?? p.nomeCamisa ?? '',
     status: p.status_pagamento ?? p.status ?? 'PENDENTE',
+    metodoPagamento: p.metodo_pagamento ?? null,
     data: p.data_pedido ?? p.data ?? '',
 
     comprovanteId: p.comprovante_id ?? null,
@@ -269,11 +270,12 @@ function renderPendentes() {
   box.innerHTML = lista.map(p => `
     <article class="payment-card">
       <div class="payment-card__student">${esc(p.aluno || 'Aluno não informado')}</div>
-      <div class="payment-card__row"><span>Curso / modelo</span><strong>${esc(nomeCurso(p.modelo))}</strong></div>
-      <div class="payment-card__row"><span>Número</span><strong>${esc(p.numero || '—')}</strong></div>
-      <div class="payment-card__row"><span>Tamanho</span><strong>${esc(p.tamanho || '—')}</strong></div>
-      <div class="payment-card__row"><span>Nome nas costas</span><strong>${esc(p.nomeCamisa || '—')}</strong></div>
-      <div class="payment-card__row"><span>Data</span><strong>${esc(formatarData(p.data))}</strong></div>
+      <div class="payment-card__row"><span>Curso / modelo: </span><strong>${esc(nomeCurso(p.modelo))}</strong></div>
+      <div class="payment-card__row"><span>Número: </span><strong>${esc(p.numero || '—')}</strong></div>
+      <div class="payment-card__row"><span>Tamanho: </span><strong>${esc(p.tamanho || '—')}</strong></div>
+      <div class="payment-card__row"><span>Nome nas costas: </span><strong>${esc(p.nomeCamisa || '—')}</strong></div>
+      <div class="payment-card__row"><span>Data: </span><strong>${esc(formatarData(p.data))}</strong></div>
+      <div class="payment-card__row"><span>Método de pagamento: </span><strong>${esc(p.metodoPagamento || 'Não informado')}</strong></div>
       <div class="payment-card__actions">
         <button class="btn btn--danger" data-recusar="${esc(p.id)}">Recusar</button>
         <button class="btn btn--success" data-aprovar="${esc(p.id)}">Aceitar</button>
@@ -381,6 +383,19 @@ document.getElementById('pagamentoDetalhe').innerHTML = `
     <span>E-mail: </span>
     <strong>${esc(p.email || '—')}</strong>
   </div>
+
+
+<div class="payment-card__row">
+    <span>Método de pagamento:</span>
+    <strong>${
+        p.metodoPagamento === 'PIX'
+            ? 'PIX'
+            : p.metodoPagamento === 'DINHEIRO'
+                ? 'Dinheiro'
+                : 'Não informado'
+    }</strong>
+</div>
+
 
   <div class="payment-card__row">
     <span>Curso / modelo: </span>

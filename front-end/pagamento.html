@@ -151,8 +151,9 @@
       }
 
       if (!pedidoId) {
-      error.textContent = 'Pedido não encontrado.';
-      }
+    error.textContent = 'Pedido não encontrado. Volte e faça o pedido novamente.';
+    form.querySelector('button[type="submit"]').disabled = true;
+    }
 
       const formatSize = bytes => bytes < 1024 * 1024
         ? `${Math.max(1, Math.round(bytes / 1024))} KB`
