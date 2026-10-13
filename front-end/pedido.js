@@ -7,6 +7,13 @@ const btnVoltarCurso = document.getElementById("btnVoltarCurso");
 
 const formulario = document.getElementById("formPedido");
 const modelo = document.getElementById("modelo");
+const cursoExibido = document.getElementById("cursoExibido");
+
+const nomesCursos = {
+    Informatica: "Informática",
+    Contabilidade: "Contabilidade",
+    Enfermagem: "Enfermagem"
+};
 const numero = document.getElementById("numero");
 const tamanho = document.getElementById("tamanho");
 const nomeCostas = document.getElementById("nomeCostas");
@@ -78,6 +85,7 @@ function voltarParaSelecaoCurso() {
         etapaCurso.classList.add("ativa");
 
         modelo.value = "";
+        cursoExibido.value = "";
     }, 1250);
 }
 
@@ -94,30 +102,15 @@ formCurso.addEventListener("submit", function (event) {
     cursoAtual = cursoSelecionado;
 
     animarTrocaDeFundo(cursoSelecionado, () => {
-        etapaCurso.classList.remove("ativa");
-        etapaPedido.classList.add("ativa");
-        modelo.value = cursoSelecionado;
+    etapaCurso.classList.remove("ativa");
+    etapaPedido.classList.add("ativa");
+
+    modelo.value = cursoSelecionado;
+    cursoExibido.value = nomesCursos[cursoSelecionado] || cursoSelecionado;
     });
 });
 
 btnVoltarCurso.addEventListener("click", voltarParaSelecaoCurso);
-
-modelo.addEventListener("change", function () {
-    const novoCurso = modelo.value;
-
-    if (!novoCurso) {
-        cursoAtual = "";
-        definirFundo("img/branco.jpeg");
-        return;
-    }
-
-    if (novoCurso === cursoAtual) {
-        return;
-    }
-
-    cursoAtual = novoCurso;
-    animarTrocaDeFundo(novoCurso);
-});
 
 definirFundo("img/branco.jpeg");
 

@@ -39,7 +39,7 @@ try {
             pedidos.nome_camisa,
             pedidos.data_pedido,
             pedidos.status_pagamento,
-
+            pedidos.metodo_pagamento,
             (
                 SELECT comprovantes.id
                 FROM comprovantes

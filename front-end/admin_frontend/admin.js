@@ -43,6 +43,7 @@ function normalizarPedido(p) {
     tamanho: p.tamanho ?? '',
     nomeCamisa: p.nome_camisa ?? p.nomeCamisa ?? '',
     status: p.status_pagamento ?? p.status ?? 'PENDENTE',
+    metodoPagamento: p.metodo_pagamento ?? null,
     data: p.data_pedido ?? p.data ?? '',
 
     comprovanteId: p.comprovante_id ?? null,
@@ -257,6 +258,7 @@ function renderPedidos() {
   );
 }
 
+
 function renderPendentes() {
   const box = document.getElementById('listaPagamentos');
   const lista = pedidosCache.filter(p => p.status === 'PENDENTE');
@@ -268,26 +270,44 @@ function renderPendentes() {
 
   box.innerHTML = lista.map(p => `
     <article class="payment-card">
-      <div class="payment-card__student">${esc(p.aluno || 'Aluno não informado')}</div>
-      <div class="payment-card__row"><span>Curso / modelo</span><strong>${esc(nomeCurso(p.modelo))}</strong></div>
-      <div class="payment-card__row"><span>Número</span><strong>${esc(p.numero || '—')}</strong></div>
-      <div class="payment-card__row"><span>Tamanho</span><strong>${esc(p.tamanho || '—')}</strong></div>
-      <div class="payment-card__row"><span>Nome nas costas</span><strong>${esc(p.nomeCamisa || '—')}</strong></div>
-      <div class="payment-card__row"><span>Data</span><strong>${esc(formatarData(p.data))}</strong></div>
+      <div class="payment-card__student">
+        ${esc(p.aluno || 'Aluno não informado')}
+      </div>
+
+      <div class="payment-card__row">
+        <span>Modelo:</span>
+        <strong>${esc(nomeCurso(p.modelo))}</strong>
+      </div>
+
+      <div class="payment-card__row">
+        <span>Pedido:</span>
+        <strong>#${esc(p.id)}</strong>
+      </div>
+
       <div class="payment-card__actions">
-        <button class="btn btn--danger" data-recusar="${esc(p.id)}">Recusar</button>
-        <button class="btn btn--success" data-aprovar="${esc(p.id)}">Aceitar</button>
+        <button class="btn btn--danger" data-recusar="${esc(p.id)}">
+          Recusar
+        </button>
+        <button class="btn btn--success" data-aprovar="${esc(p.id)}">
+          Analisar pedido
+        </button>
       </div>
     </article>
   `).join('');
 
   box.querySelectorAll('[data-aprovar]').forEach(b =>
-    b.addEventListener('click', () => abrirConfirmacao(b.dataset.aprovar, 'APROVADO'))
+    b.addEventListener('click', () =>
+      abrirConfirmacao(b.dataset.aprovar, 'APROVADO')
+    )
   );
+
   box.querySelectorAll('[data-recusar]').forEach(b =>
-    b.addEventListener('click', () => abrirConfirmacao(b.dataset.recusar, 'RECUSADO'))
+    b.addEventListener('click', () =>
+      abrirConfirmacao(b.dataset.recusar, 'RECUSADO')
+    )
   );
 }
+
 
 function atualizarResumoLocal() {
   const total = pedidosCache.length;
@@ -381,6 +401,19 @@ document.getElementById('pagamentoDetalhe').innerHTML = `
     <span>E-mail: </span>
     <strong>${esc(p.email || '—')}</strong>
   </div>
+
+
+<div class="payment-card__row">
+    <span>Método de pagamento:</span>
+    <strong>${
+        p.metodoPagamento === 'PIX'
+            ? 'PIX'
+            : p.metodoPagamento === 'DINHEIRO'
+                ? 'Dinheiro'
+                : 'Não informado'
+    }</strong>
+</div>
+
 
   <div class="payment-card__row">
     <span>Curso / modelo: </span>
@@ -482,6 +515,57 @@ async function carregarUsuarios() {
   }
 }
 
+/* ============ IMPORTAÇÃO DE ALUNOS ============ */
+
+const formImportarAlunos = document.getElementById('formImportarAlunos');
+
+if (formImportarAlunos) {
+  formImportarAlunos.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const inputArquivo = document.getElementById('arquivoAlunos');
+    const resultado = document.getElementById('resultadoImportacao');
+    const botao = document.getElementById('btnImportarAlunos');
+
+    if (!inputArquivo.files.length) {
+      resultado.textContent = 'Selecione um arquivo CSV.';
+      return;
+    }
+
+    const formulario = new FormData();
+    formulario.append('arquivo', inputArquivo.files[0]);
+
+    botao.disabled = true;
+    resultado.textContent = 'Importando alunos...';
+
+    try {
+      const resposta = await fetch('../../backend/importar_alunos.php', {
+        method: 'POST',
+        body: formulario,
+        credentials: 'include'
+      });
+
+      const dados = await resposta.json();
+
+      if (!resposta.ok || !dados.sucesso) {
+        throw new Error(dados.erro || 'Não foi possível importar o arquivo.');
+      }
+
+      resultado.textContent =
+        `Importação concluída! Importados: ${dados.importados}; ` +
+        `duplicados: ${dados.duplicados}; inválidos: ${dados.invalidos}.`;
+
+      inputArquivo.value = '';
+
+      await carregarUsuarios();
+    } catch (erro) {
+      resultado.textContent =
+        erro.message || 'Erro ao importar os alunos.';
+    } finally {
+      botao.disabled = false;
+    }
+  });
+}
 
 /* ============ VOTAÇÃO ============ */
 async function carregarVotos() {

@@ -1,0 +1,8 @@
+ALTER TABLE emails_autorizados
+    ADD COLUMN nome VARCHAR(100) NULL AFTER email,
+    ADD COLUMN curso VARCHAR(100) NULL AFTER nome,
+    ADD COLUMN serie VARCHAR(30) NULL AFTER curso;
+
+ALTER TABLE usuarios
+    ADD COLUMN curso VARCHAR(100) NULL AFTER email,
+    ADD COLUMN serie VARCHAR(30) NULL AFTER curso;
