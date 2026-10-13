@@ -18,7 +18,6 @@
                 <div class="marca">FARDAMENTO • INTERCURSO</div>
 
                 <div class="cabecalho">
-                    <span class="numero-etapa">01</span>
                     <h1>Qual seu curso?</h1>
                     <p>Selecione seu curso para personalizar a identidade visual do pedido.</p>
                 </div>
@@ -78,25 +77,19 @@
                     <small>Voltar</small>
                 </button>
 
-                <div class="marca">FARDAMENTO • INTERCURSO</div>
-
                 <div class="cabecalho">
-                    <span class="numero-etapa">02</span>
                     <h1>Pedido de Fardamento</h1>
                     <p>Preencha os dados para personalizar sua camisa.</p>
                 </div>
 
                 <form id="formPedido">
                     <div class="campo">
-                        <label for="modelo">Curso / modelo</label>
-                        <select id="modelo" name="modelo">
-                            <option value="">Selecione o curso</option>
-                            <option value="Informatica">Informática</option>
-                            <option value="Contabilidade">Contabilidade</option>
-                            <option value="Enfermagem">Enfermagem</option>
-                        </select>
-                        <span class="erro" id="erroModelo"></span>
+                    <label>Seu curso</label>
+                    <input type="text" id="cursoExibido" readonly>
+                    <span class="erro" id="erroModelo"></span>
                     </div>
+
+    <input type="hidden" id="modelo" name="modelo">
 
                     <div class="linha-campos">
                         <div class="campo">

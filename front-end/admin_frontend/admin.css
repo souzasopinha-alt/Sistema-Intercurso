@@ -1032,6 +1032,173 @@ select {
   border-color: #86efac !important;
 }
 
+/* =========================
+   USUÁRIOS — VISUAL REFINADO
+   ========================= */
+
+#view-usuarios .view__head {
+  margin-bottom: 30px;
+}
+
+#view-usuarios .import-card {
+  position: relative;
+  margin-bottom: 28px;
+  padding: 28px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #ffffff 0%, #f6f7fa 100%);
+  border: 1px solid var(--borda);
+  border-radius: 22px;
+  box-shadow: var(--sombra-leve);
+}
+
+#view-usuarios .import-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5px;
+  height: 100%;
+  background: var(--preto);
+}
+
+#view-usuarios .import-card h2 {
+  margin: 0 0 10px;
+  color: var(--preto);
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+#view-usuarios .import-card p {
+  max-width: 650px;
+  margin-bottom: 22px;
+  color: var(--cinza-escuro);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+#view-usuarios .import-card code {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 5px 9px;
+  border: 1px solid var(--borda);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--preto);
+  font-size: 12px;
+}
+
+#view-usuarios #formImportarAlunos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 14px;
+}
+
+#view-usuarios #formImportarAlunos label {
+  flex-basis: 100%;
+  margin-bottom: -8px;
+  color: var(--cinza-escuro);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+#view-usuarios #arquivoAlunos {
+  flex: 1 1 260px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--cinza-escuro);
+  font: inherit;
+  font-size: 12px;
+}
+
+#view-usuarios #btnImportarAlunos {
+  min-height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--preto);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: transform .2s ease, box-shadow .2s ease, opacity .2s ease;
+}
+
+#view-usuarios #btnImportarAlunos:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .12);
+}
+
+#view-usuarios #btnImportarAlunos:disabled {
+  cursor: wait;
+  opacity: .6;
+}
+
+#view-usuarios #resultadoImportacao {
+  margin-top: 16px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+#view-usuarios .table-wrap {
+  overflow: hidden;
+  border-radius: 20px;
+  background: #fff;
+}
+
+#view-usuarios .table {
+  min-width: 600px;
+}
+
+#view-usuarios .table th {
+  padding: 17px 20px;
+  background: #f5f6f8;
+  letter-spacing: .1em;
+}
+
+#view-usuarios .table td {
+  padding: 18px 20px;
+  transition: background .2s ease;
+}
+
+#view-usuarios .table tbody tr {
+  transition: background .2s ease;
+}
+
+#view-usuarios .table tbody tr:hover {
+  background: #f6f7f9;
+}
+
+#view-usuarios .table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+@media (max-width: 600px) {
+  #view-usuarios .import-card {
+    padding: 22px 18px;
+    border-radius: 18px;
+  }
+
+  #view-usuarios #formImportarAlunos {
+    align-items: stretch;
+  }
+
+  #view-usuarios #arquivoAlunos,
+  #view-usuarios #btnImportarAlunos {
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+  #view-usuarios .table-wrap {
+    border-radius: 16px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
