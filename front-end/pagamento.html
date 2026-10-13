@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pagamento via PIX ou dinheiro</title>
   <link rel="stylesheet" href="pagamento.css">
-  
 </head>
 <body>
   <header class="site-header">
@@ -56,7 +55,7 @@
       </div>
 
       <form id="payment-form"
-      action="../../backend/pagamentos/comprovante.php"
+      action="../backend/pagamentos/comprovante.php"
       method="post"
       enctype="multipart/form-data">
         <input type="hidden" name="pedido_id" id="pedido-id">
@@ -84,9 +83,8 @@
         </div>
 
         <p class="cash-message" id="cash-message" hidden>
-          **Pagamento em dinheiro**
-
-Você escolheu pagar em dinheiro. Não é necessário anexar um comprovante. Para combinar e realizar o pagamento, procure Bruno ou algum integrante da Comissão do Intercurso.
+          <strong>Pagamento em dinheiro</strong><br><br>
+          Você escolheu pagar em dinheiro. Não é necessário anexar um comprovante. Para combinar e realizar o pagamento, procure Bruno ou algum integrante da Comissão do Intercurso.
         </p>
 
         <label class="upload-zone" for="receipt-file" id="upload-zone">
@@ -148,14 +146,15 @@ Você escolheu pagar em dinheiro. Não é necessário anexar um comprovante. Par
       const paymentOptions = document.querySelectorAll('input[name="metodo_pagamento"]');
       const maxSize = 10 * 1024 * 1024;
       const pedidoId = sessionStorage.getItem('pedido_id');
+
       if (pedidoId) {
-      document.querySelector('#pedido-id').value = pedidoId;
+        document.querySelector('#pedido-id').value = pedidoId;
       }
 
       if (!pedidoId) {
-    error.textContent = 'Pedido não encontrado. Volte e faça o pedido novamente.';
-    form.querySelector('button[type="submit"]').disabled = true;
-    }
+        error.textContent = 'Pedido não encontrado. Volte e faça o pedido novamente.';
+        form.querySelector('button[type="submit"]').disabled = true;
+      }
 
       const formatSize = bytes => bytes < 1024 * 1024
         ? `${Math.max(1, Math.round(bytes / 1024))} KB`
@@ -248,60 +247,54 @@ Você escolheu pagar em dinheiro. Não é necessário anexar um comprovante. Par
         }
       });
 
-      
-form.addEventListener('submit', async eventObject => {
-  eventObject.preventDefault();
+      form.addEventListener('submit', async eventObject => {
+        eventObject.preventDefault();
+        error.textContent = '';
 
-  error.textContent = '';
+        if (!pedidoId) {
+          error.textContent = 'Pedido não encontrado. Volte e faça o pedido novamente.';
+          return;
+        }
 
-  if (!pedidoId) {
-    error.textContent = 'Pedido não encontrado. Volte e faça o pedido novamente.';
-    return;
-  }
+        if (!isCashPayment() && !input.files[0]) {
+          error.textContent = 'Anexe o comprovante antes de confirmar o envio.';
+          zone.focus();
+          return;
+        }
 
-  if (!isCashPayment() && !input.files[0]) {
-    error.textContent = 'Anexe o comprovante antes de confirmar o envio.';
-    zone.focus();
-    return;
-  }
+        const submitButton = document.querySelector('#submit-button');
+        const originalLabel = submitLabel.textContent;
 
-  const submitButton = form.querySelector('button[type="submit"]');
-  const originalLabel = submitLabel.textContent;
+        submitButton.disabled = true;
+        submitLabel.textContent = 'Enviando...';
 
-  submitButton.disabled = true;
-  submitLabel.textContent = 'Enviando...';
+        try {
+          const resposta = await fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            credentials: 'include'
+          });
 
-  try {
-    const resposta = await fetch(form.action, {
-      method: 'POST',
-      body: new FormData(form),
-      credentials: 'include'
-    });
+          const resultado = await resposta.json();
 
-    const resultado = await resposta.json();
+          if (!resposta.ok || !resultado.sucesso) {
+            throw new Error(
+              resultado.erro || resultado.mensagem || 'Não foi possível registrar o pagamento.'
+            );
+          }
 
-    if (!resposta.ok || !resultado.sucesso) {
-      throw new Error(
-        resultado.erro || resultado.mensagem || 'Não foi possível registrar o pagamento.'
-      );
-    }
+          alert(resultado.mensagem || 'Pagamento registrado com sucesso.');
 
-    alert(resultado.mensagem || 'Pagamento registrado com sucesso.');
+          sessionStorage.removeItem('pedido_id');
+          window.location.href = 'pedido.html';
 
-    // Evita que o pedido antigo seja reutilizado na próxima visita.
-    sessionStorage.removeItem('pedido_id');
-
-    // Volta para a página do pedido.
-    window.location.href = 'pedido.html';
-
-  } catch (erro) {
-    error.textContent = erro.message || 'Erro ao enviar o pagamento. Tente novamente.';
-  } finally {
-    submitButton.disabled = false;
-    submitLabel.textContent = originalLabel;
-  }
-});
-
+        } catch (erro) {
+          error.textContent = erro.message || 'Erro ao enviar o pagamento. Tente novamente.';
+        } finally {
+          submitButton.disabled = false;
+          submitLabel.textContent = originalLabel;
+        }
+      });
 
       copyButton.addEventListener('click', async () => {
         const value = document.querySelector('#pix-key').dataset.copyValue;

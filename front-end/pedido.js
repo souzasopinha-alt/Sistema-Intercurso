@@ -167,7 +167,7 @@ dados.append("nome_camisa", nome);
 
 try {
 
-    const resposta = await fetch("../../backend/criar_pedido.php", {
+    const resposta = await fetch("../backend/criar_pedido.php", {
         method: "POST",
         body: dados,
         credentials: "include"

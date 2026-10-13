@@ -52,9 +52,7 @@ formulario.addEventListener("submit", function(event) {
             if (resultado.tipo === "ADMIN") {
                 window.location.href = "admin_frontend/admin.html";
             } else if (resultado.tipo === "ALUNO") {
-
-                window.location.href = "perfil.html";
-
+                window.location.href = "uploud_frontend/uploud_camisas.html";
             } else if (resultado.tipo === "LIDER") {
                 window.location.href = "admin_frontend/admin.html";
             }
