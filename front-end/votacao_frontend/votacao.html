@@ -1,10 +1,34 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Votação — InterCurso</title><link rel="stylesheet" href="votacao.css"></head><body><main class="page"><header><h1>Votação das camisas</h1><p>Escolha uma opção. Cada usuário pode votar uma única vez.</p></header><div id="status" class="status"></div><section id="lista" class="grid"><div class="empty">Carregando opções...</div></section></main><script>
-const lista=document.getElementById('lista'),statusEl=document.getElementById('status');let dados=[];
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-function img(path){return 'https://ecjnysmrbylbpibsibzh.supabase.co/storage/v1/object/public/imagens/'+String(path||'').split('/').map(encodeURIComponent).join('/');}
-function status(t,cls=''){statusEl.className='status '+cls;statusEl.textContent=t;}
-const API_VOTACAO='../../backend/votacao_backend/votacao.php';
-async function carregar(){try{const r=await fetch(API_VOTACAO,{credentials:'include',cache:'no-store'});const j=await r.json();if(!r.ok||!j.success)throw Error(j.message||'Falha');dados=j.opcoes||[];if(!dados.length){lista.innerHTML='<div class="empty">Nenhuma opção disponível.</div>';return;}lista.innerHTML=dados.map(o=>`<article class="card"><h2>Opção ${o.numero}</h2><div class="imgs"><img src="${img(o.imagem1)}" alt="Opção ${o.numero} — Informática"><img src="${img(o.imagem2)}" alt="Opção ${o.numero} — Contabilidade"><img src="${img(o.imagem3)}" alt="Opção ${o.numero} — Enfermagem"></div><div class="bottom"><span>${Number(o.total_votos||0)} voto(s)</span><button data-id="${o.id}" ${j.ja_votou?'disabled':''}>${j.ja_votou?'Voto já registrado':'Votar nesta opção'}</button></div></article>`).join('');if(j.ja_votou)status('Seu voto já foi registrado.','ok');lista.querySelectorAll('button').forEach(b=>b.onclick=()=>votar(Number(b.dataset.id),b));}catch(e){console.error(e);status(e.message||'Não foi possível carregar a votação.','err');lista.innerHTML='<div class="empty">Não foi possível carregar as opções.</div>';}}
-async function votar(id,btn){if(!confirm('Confirmar seu voto nesta opção?'))return;btn.disabled=true;status('Registrando voto...');try{const r=await fetch(API_VOTACAO,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({opcao_id:id})});const j=await r.json();if(!r.ok||!j.success)throw Error(j.message||'Não foi possível votar.');status('Voto registrado com sucesso.','ok');await carregar();}catch(e){btn.disabled=false;status(e.message||'Não foi possível registrar o voto.','err');}}
-carregar();
-</script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Votação — InterCurso</title>
+    <link rel="stylesheet" href="votacao.css">
+</head>
+
+<body>
+    <main class="page">
+        <header>
+            <h1>Votação das camisas</h1>
+            <p>Escolha uma opção. Cada usuário pode votar uma única vez.</p>
+        </header>
+        <div id="status" class="status"></div>
+        <section id="lista" class="grid">
+            <div class="empty">Carregando opções...</div>
+        </section>
+    </main>
+    <script>
+        const lista = document.getElementById('lista'), statusEl = document.getElementById('status'); let dados = [];
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
+        function img(path) { return 'https://ecjnysmrbylbpibsibzh.supabase.co/storage/v1/object/public/imagens/' + String(path || '').split('/').map(encodeURIComponent).join('/'); }
+        function status(t, cls = '') { statusEl.className = 'status ' + cls; statusEl.textContent = t; }
+        const API_VOTACAO = 'votacao.php';
+        async function carregar() { try { const r = await fetch(API_VOTACAO, { credentials: 'include', cache: 'no-store' }); const j = await r.json(); if (!r.ok || !j.success) throw Error(j.message || 'Falha'); dados = j.opcoes || []; if (!dados.length) { lista.innerHTML = '<div class="empty">Nenhuma opção disponível.</div>'; return; } lista.innerHTML = dados.map(o => `<article class="card"><h2>Opção ${o.numero}</h2><div class="imgs"><img src="${img(o.imagem1)}" alt="Opção ${o.numero} — Informática"><img src="${img(o.imagem2)}" alt="Opção ${o.numero} — Contabilidade"><img src="${img(o.imagem3)}" alt="Opção ${o.numero} — Enfermagem"></div><div class="bottom"><span>${Number(o.total_votos || 0)} voto(s)</span><button data-id="${o.id}" ${j.ja_votou ? 'disabled' : ''}>${j.ja_votou ? 'Voto já registrado' : 'Votar nesta opção'}</button></div></article>`).join(''); if (j.ja_votou) status('Seu voto já foi registrado.', 'ok'); lista.querySelectorAll('button').forEach(b => b.onclick = () => votar(Number(b.dataset.id), b)); } catch (e) { console.error(e); status(e.message || 'Não foi possível carregar a votação.', 'err'); lista.innerHTML = '<div class="empty">Não foi possível carregar as opções.</div>'; } }
+        async function votar(id, btn) { if (!confirm('Confirmar seu voto nesta opção?')) return; btn.disabled = true; status('Registrando voto...'); try { const r = await fetch(API_VOTACAO, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ opcao_id: id }) }); const j = await r.json(); if (!r.ok || !j.success) throw Error(j.message || 'Não foi possível votar.'); status('Voto registrado com sucesso.', 'ok'); await carregar(); } catch (e) { btn.disabled = false; status(e.message || 'Não foi possível registrar o voto.', 'err'); } }
+        carregar();
+    </script>
+</body>
+
+</html>
