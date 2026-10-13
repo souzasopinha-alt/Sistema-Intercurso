@@ -501,6 +501,81 @@ select {
   gap: 12px;
 }
 
+
+/* ========================= PEDIDOS PENDENTES ========================= */
+
+.payment-card {
+  position: relative;
+  padding: 20px 22px;
+  background: rgba(255, 255, 255, .97);
+  border: 1px solid var(--borda);
+  border-left: 4px solid var(--preto);
+  border-radius: 16px;
+  box-shadow: var(--sombra-leve);
+  transition:
+    transform .2s ease,
+    box-shadow .2s ease,
+    border-color .2s ease;
+}
+
+.payment-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(16, 17, 20, .08);
+}
+
+.payment-card__student {
+  margin-bottom: 14px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--preto);
+}
+
+.payment-card__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(222, 223, 226, .7);
+}
+
+.payment-card__row span {
+  color: var(--cinza);
+  font-size: 13px;
+}
+
+.payment-card__row strong {
+  color: var(--preto);
+  font-size: 13px;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.payment-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+@media (max-width: 600px) {
+  .payment-card {
+    padding: 16px;
+  }
+
+  .payment-card__row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .payment-card__row strong {
+    text-align: left;
+  }
+}
+
+
 .report-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

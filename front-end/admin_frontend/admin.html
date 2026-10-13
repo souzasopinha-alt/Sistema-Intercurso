@@ -76,6 +76,16 @@
         <p>Pedidos cadastrados conforme o formulário de pedido.</p>
       </div>
 
+<div class="view__actions">
+  <a
+    class="btn btn--primary"
+    href="../../backend/admin_backend/exportar_pedidos.php"
+    id="btnExportarPedidos"
+  >
+    Exportar pedidos por tamanho (CSV)
+  </a>
+</div>
+
       <div class="filters" id="filtrosPedidos">
         <div class="filters__field">
           <label for="filtroStatus">Status</label>
@@ -153,6 +163,31 @@
       <div class="view__head">
         <h1>Usuários</h1>
         <p>Pessoas com acesso ao sistema.</p>
+      </div>
+
+      <div class="import-card">
+        <h2>Importar alunos</h2>
+        <p>
+          Envie um arquivo CSV com as colunas:
+          <code>curso;série;nome;email</code>.
+        </p>
+
+        <form id="formImportarAlunos" enctype="multipart/form-data">
+          <label for="arquivoAlunos">Arquivo CSV</label>
+          <input
+            type="file"
+            id="arquivoAlunos"
+            name="arquivo"
+            accept=".csv,text/csv"
+            required
+          >
+
+          <button type="submit" id="btnImportarAlunos">
+            Importar alunos
+          </button>
+        </form>
+
+        <div id="resultadoImportacao" role="status" aria-live="polite"></div>
       </div>
 
       <div class="table-wrap">
