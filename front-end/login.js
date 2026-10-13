@@ -53,7 +53,7 @@ formulario.addEventListener("submit", function(event) {
                 window.location.href = "admin_frontend/admin.html";
             } else if (resultado.tipo === "ALUNO") {
 
-                window.location.href = "pedido.html";
+                window.location.href = "votacao_frontend/votacao.html";
 
             } else if (resultado.tipo === "LIDER") {
 
