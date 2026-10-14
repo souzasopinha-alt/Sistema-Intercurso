@@ -1,4 +1,3 @@
-
 const mensagem = document.getElementById("mensagem");
 const listaPedidos = document.getElementById("listaPedidos");
 
@@ -67,7 +66,7 @@ function criarDadoPedido(titulo, valor) {
     return dado;
 }
 
-function criarCartaoPedido(pedido) {
+function criarCartaoPedido(pedido, indice) {
     const cartao = criarElemento("article", "pedido");
     const cabecalho = criarElemento("div", "pedido-cabecalho");
     const identificacao = criarElemento("div", "");
@@ -75,7 +74,7 @@ function criarCartaoPedido(pedido) {
     const status = pedido.status_pagamento || "PENDENTE";
 
     identificacao.append(
-        criarElemento("p", "pedido-numero", `Pedido #${pedido.id}`),
+        criarElemento("p", "pedido-numero", `Pedido ${indice}`),
         criarElemento("h3", "", pedido.modelo || "Fardamento")
     );
 
@@ -101,13 +100,47 @@ function criarCartaoPedido(pedido) {
 
     cartao.append(cabecalho, dados);
 
+    if (status === "RECUSADO") {
+        const aviso = criarElemento(
+            "p",
+            "pedido-aviso-recusado",
+            "Este pedido foi recusado. Clique em \"Fazer novamente\" para enviar um novo."
+        );
+
+        const acoes = criarElemento("div", "pedido-acoes-recusado");
+
+        const botao = criarElemento(
+            "button",
+            "botao-primario",
+            "Fazer novamente"
+        );
+        botao.type = "button";
+        botao.addEventListener("click", () => {
+            window.location.href = "pedido.html";
+        });
+
+        acoes.appendChild(botao);
+        cartao.append(aviso, acoes);
+    }
+
     return cartao;
 }
 
-function mostrarPedido(pedido) {
+function criarBotaoNovoPedido(texto) {
+    const botao = criarElemento("button", "botao-novo-pedido", texto);
+    botao.type = "button";
+    botao.addEventListener("click", () => {
+        window.location.href = "pedido.html";
+    });
+    return botao;
+}
+
+function mostrarPedidos(pedidos, pedidosAbertos) {
     listaPedidos.replaceChildren();
 
-    if (!pedido) {
+    const lista = Array.isArray(pedidos) ? pedidos : [];
+
+    if (lista.length === 0) {
         const vazio = criarElemento("div", "vazio");
 
         vazio.append(
@@ -119,11 +152,23 @@ function mostrarPedido(pedido) {
             )
         );
 
+        if (pedidosAbertos) {
+            vazio.appendChild(criarBotaoNovoPedido("Fazer um pedido"));
+        }
+
         listaPedidos.appendChild(vazio);
         return;
     }
 
-    listaPedidos.appendChild(criarCartaoPedido(pedido));
+    lista.forEach((pedido, indice) => {
+        listaPedidos.appendChild(criarCartaoPedido(pedido, indice + 1));
+    });
+
+    if (pedidosAbertos) {
+        const barra = criarElemento("div", "pedidos-acoes");
+        barra.appendChild(criarBotaoNovoPedido("+ Fazer mais um pedido"));
+        listaPedidos.appendChild(barra);
+    }
 }
 
 async function carregarPerfil() {
@@ -159,7 +204,7 @@ async function carregarPerfil() {
         campoCurso.textContent = usuario.curso || "Não informado";
         campoSerie.textContent = usuario.serie || "Não informada";
 
-        mostrarPedido(resultado.pedido);
+        mostrarPedidos(resultado.pedidos, resultado.pedidos_abertos === true);
 
         mensagem.textContent = "";
         mensagem.className = "mensagem";

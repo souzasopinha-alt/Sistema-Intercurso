@@ -50,12 +50,12 @@ formulario.addEventListener("submit", function(event) {
             mensagem.className = "sucesso";
 
             if (resultado.tipo === "ADMIN") {
-                window.location.href = "admin_frontend/admin.html";
-            } else if (resultado.tipo === "ALUNO") {
-                window.location.href = "uploud_frontend/uploud_camisas.html";
-            } else if (resultado.tipo === "LIDER") {
-                window.location.href = "admin_frontend/admin.html";
-            }
+    window.location.href = "admin_frontend/admin.html";
+} else if (resultado.tipo === "ALUNO") {
+    window.location.href = resultado.proximo_passo || "uploud_frontend/uploud_camisas.html";
+} else if (resultado.tipo === "LIDER") {
+    window.location.href = "admin_frontend/admin.html";
+}
 
         } else {
 

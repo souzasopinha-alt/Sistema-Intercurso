@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pagamento via PIX ou dinheiro</title>
+  <title>Pagamento — Intercurso</title>
   <link rel="stylesheet" href="pagamento.css">
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="#" aria-label="Ateliê Aurora - início">
+    <a class="brand" href="#" aria-label="Intercurso - início">
       <span class="brand-mark" aria-hidden="true">✦</span>
-      <span>EEEP <strong>Joaquim Albano</strong></span>
+      <span>Intercurso</span>
     </a>
     <div class="secure-label" aria-label="Pagamento seguro">
       <span class="lock-icon" aria-hidden="true">⌑</span>
@@ -33,10 +33,10 @@
       <p class="total">R$ 35,00</p>
       <p class="muted pix-help">Copie a chave PIX abaixo:</p>
       <div class="pix-key-label">
-        <span>Chave PIX (e-mail, CPF ou número de telefone)</span>
+        <span>Chave PIX</span>
         <button class="copy-button" type="button" id="copy-key" aria-label="Copiar chave PIX">copiar</button>
       </div>
-      <div class="pix-key" id="pix-key" data-copy-value="financeiro@atelieaurora.com.br">Chave pix do brunão</div>
+      <div class="pix-key" id="pix-key" data-copy-value="financeiro@intercurso.com.br">financeiro@intercurso.com.br</div>
       <p class="copy-feedback" id="copy-feedback" role="status" aria-live="polite"></p>
     </div>
 
@@ -55,10 +55,11 @@
       </div>
 
       <form id="payment-form"
-      action="../backend/pagamentos/comprovante.php"
-      method="post"
-      enctype="multipart/form-data">
+        action="../backend/pagamentos/comprovante.php"
+        method="post"
+        enctype="multipart/form-data">
         <input type="hidden" name="pedido_id" id="pedido-id">
+
         <fieldset class="payment-method">
           <legend>Como você deseja pagar?</legend>
           <div class="payment-method-options">
@@ -84,7 +85,7 @@
 
         <p class="cash-message" id="cash-message" hidden>
           <strong>Pagamento em dinheiro</strong><br><br>
-          Você escolheu pagar em dinheiro. Não é necessário anexar um comprovante. Para combinar e realizar o pagamento, procure Bruno ou algum integrante da Comissão do Intercurso.
+          Você escolheu pagar em dinheiro. Não é necessário anexar um comprovante. Para combinar e realizar o pagamento, procure um integrante da Comissão do Intercurso.
         </p>
 
         <label class="upload-zone" for="receipt-file" id="upload-zone">
@@ -104,6 +105,7 @@
         </div>
 
         <p class="form-error" id="form-error" role="alert" aria-live="assertive"></p>
+
         <button class="submit-button" type="submit" id="submit-button">
           <span id="submit-label">Confirmar envio do comprovante</span>
           <span aria-hidden="true">→</span>
@@ -117,13 +119,12 @@
     </section>
 
     <p class="support-line">
-      Precisa de ajuda? <a href="mailto:suporte@atelieaurora.com.br">Fale com nosso suporte</a>
+      Precisa de ajuda? <a href="mailto:suporte@intercurso.com.br">Fale com o suporte</a>
     </p>
   </main>
 
   <footer class="site-footer">
-    <span>© 2024 Ateliê Aurora</span>
-    <span>feito com cuidado para você</span>
+    <span>Sistema Intercurso</span>
   </footer>
 
   <script>
@@ -210,7 +211,7 @@
         clearFile();
 
         if (cashPayment) {
-          receiptIntro.textContent = 'O pagamento será realizado em dinheiro. Não é necessário enviar comprovante. Procure Bruno ou a Comissão do Intercurso para combinar o pagamento.';
+          receiptIntro.textContent = 'O pagamento será realizado em dinheiro. Não é necessário enviar comprovante. Procure um integrante da Comissão do Intercurso para combinar o pagamento.';
           submitLabel.textContent = 'Confirmar pagamento em dinheiro';
         } else {
           receiptIntro.textContent = 'Depois de realizar o PIX, envie uma foto ou captura de tela do comprovante para liberarmos seu pedido.';
@@ -286,7 +287,7 @@
           alert(resultado.mensagem || 'Pagamento registrado com sucesso.');
 
           sessionStorage.removeItem('pedido_id');
-          window.location.href = 'pedido.html';
+          window.location.href = 'perfil.html';
 
         } catch (erro) {
           error.textContent = erro.message || 'Erro ao enviar o pagamento. Tente novamente.';

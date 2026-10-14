@@ -416,9 +416,89 @@ select {
 }
 
 .votos-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .6rem;
+    margin: 1rem 0;
+    align-items: center;
+}
+
+.votos-toolbar .btn {
+    padding: .45rem .9rem;
+    font-weight: 600;
+    font-size: .80rem;
+    letter-spacing: .01em;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease, background .12s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .18);
+    border: 1.5px solid transparent;
+    white-space: nowrap;
+}
+
+.votos-toolbar .btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, .25);
+}
+
+.votos-toolbar .btn:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, .2);
+}
+
+.votos-toolbar .btn:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+/* Neutro — Atualizar votos */
+.btn--ghost {
+    background: transparent;
+    border-color: currentColor;
+    color: inherit;
+}
+
+.btn--ghost:hover:not(:disabled) {
+    background: rgba(255, 255, 255, .1);
+}
+
+/* Verde — Iniciar votação */
+.btn--success {
+    background: #16a34a;
+    border-color: #16a34a;
+    color: #fff;
+}
+
+.btn--success:hover:not(:disabled) {
+    background: #15803d;
+    border-color: #15803d;
+}
+
+/* Laranja — Reabrir envios / Reabrir votação */
+.btn--warn {
+    background: #ea580c;
+    border-color: #ea580c;
+    color: #fff;
+}
+
+.btn--warn:hover:not(:disabled) {
+    background: #c2410c;
+    border-color: #c2410c;
+}
+
+/* Vermelho — Encerrar votação */
+.btn--danger {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #fff;
+}
+
+.btn--danger:hover:not(:disabled) {
+    background: #b91c1c;
+    border-color: #b91c1c;
 }
 
 .votos-refresh {
@@ -1197,6 +1277,214 @@ select {
   #view-usuarios .table-wrap {
     border-radius: 16px;
   }
+}
+
+.btn-ver-camisas {
+    padding: .35rem .8rem;
+    font-size: .85rem;
+    border: 1px solid currentColor;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.btn-ver-camisas:hover {
+    opacity: .8;
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.modal-overlay[hidden] {
+    display: none;
+}
+
+.modal-camisas {
+    background: #fff;
+    color: #111;
+    border-radius: 12px;
+    padding: 1.5rem;
+    max-width: 900px;
+    width: 100%;
+    position: relative;
+}
+
+.modal-close {
+    position: absolute;
+    top: .5rem;
+    right: .75rem;
+    background: transparent;
+    border: none;
+    font-size: 1.6rem;
+    line-height: 1;
+    cursor: pointer;
+    color: inherit;
+}
+
+.camisas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.camisa-slot {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    align-items: center;
+}
+
+.camisa-slot img {
+    width: 100%;
+    height: 220px;
+    object-fit: contain;
+    background: #f4f4f4;
+    border-radius: 8px;
+}
+
+.btn-download {
+    display: inline-block;
+    padding: .35rem .8rem;
+    font-size: .85rem;
+    border: 1px solid currentColor;
+    border-radius: 6px;
+    text-decoration: none;
+    color: inherit;
+}
+
+.btn-download:hover {
+    opacity: .8;
+}
+
+.btn-excluir-usuario {
+    padding: .3rem .7rem;
+    font-size: .78rem;
+    font-weight: 600;
+    letter-spacing: .01em;
+    background: #dc2626;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background .12s ease, transform .12s ease;
+    white-space: nowrap;
+}
+
+.btn-excluir-usuario:hover {
+    background: #b91c1c;
+    transform: translateY(-1px);
+}
+
+.btn-excluir-usuario:active {
+    transform: translateY(0);
+}
+
+.acoes-bloco {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .03);
+    border: 1px solid rgba(255, 255, 255, .08);
+}
+
+.acoes-bloco h2 {
+    margin: 0 0 .25rem;
+    font-size: 1.15rem;
+}
+
+.acoes-bloco > p {
+    margin: 0 0 1rem;
+    opacity: .8;
+    font-size: .9rem;
+}
+
+#view-usuarios .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+#view-usuarios .table {
+    min-width: 720px;
+}
+
+.btn-excluir-pedido {
+    padding: .3rem .7rem;
+    font-size: .78rem;
+    font-weight: 600;
+    letter-spacing: .01em;
+    background: #7f1d1d;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background .12s ease, transform .12s ease;
+    white-space: nowrap;
+    margin-left: .4rem;
+}
+
+.btn-excluir-pedido:hover {
+    background: #991b1b;
+    transform: translateY(-1px);
+}
+
+.btn-excluir-pedido:active {
+    transform: translateY(0);
+}
+
+.btn-icone {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    font-size: 15px;
+    line-height: 1;
+    border-radius: 8px;
+}
+
+.btn-icone.btn--small {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+}
+
+.order-actions {
+    display: inline-flex;
+    gap: .35rem;
+    align-items: center;
+}
+
+#estadoVotacao,
+#estadoAcoes {
+    margin: 1rem 0 1.25rem;
+    padding: .85rem 1rem;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-left: 4px solid #3b82f6;
+    border-radius: 8px;
+    background: rgba(59, 130, 246, .08);
+    color: inherit;
+    font-size: .9rem;
+    font-weight: 500;
+    line-height: 1.5;
+    min-height: 2.6rem;
+    display: flex;
+    align-items: center;
+}
+
+#estadoVotacao:empty,
+#estadoAcoes:empty {
+    display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

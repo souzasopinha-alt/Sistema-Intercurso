@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -51,6 +50,11 @@
                 <strong>Nenhuma camisa cadastrada</strong>
                 Envie as três camisas dos cursos para começar.
             </div>
+        </div>
+
+        <div class="votacao-cta">
+            <button id="btnIrVotar" type="button">Ir votar</button>
+            <p id="avisoVotacao" class="aviso" hidden></p>
         </div>
     </main>
 
@@ -118,10 +122,15 @@ const submitBtn = document.getElementById('submitBtn');
 const optionsList = document.getElementById('optionsList');
 const countLabel = document.getElementById('countLabel');
 
+const btnIrVotar = document.getElementById('btnIrVotar');
+const avisoVotacao = document.getElementById('avisoVotacao');
+
 const drops = [...document.querySelectorAll('.image-drop')];
 const inputs = [...document.querySelectorAll('.image-input')];
 
 let selectedFiles = [null, null, null];
+let enviosAbertos = true;
+let jaEnviouProposta = false;
 
 // Exibe mensagens.
 function setStatus(message = '', type = '') {
@@ -131,7 +140,20 @@ function setStatus(message = '', type = '') {
 
 // Só libera o envio quando as três imagens estiverem prontas.
 function updateSubmit() {
-    submitBtn.disabled = !selectedFiles.every(Boolean);
+    submitBtn.disabled =
+        !enviosAbertos ||
+        jaEnviouProposta ||
+        !selectedFiles.every(Boolean);
+
+    openBtn.disabled = !enviosAbertos || jaEnviouProposta;
+
+    if (jaEnviouProposta) {
+        openBtn.textContent = 'Proposta já enviada';
+    } else if (!enviosAbertos) {
+        openBtn.textContent = 'Envios encerrados';
+    } else {
+        openBtn.textContent = '+ Enviar as 3 camisas';
+    }
 }
 
 // Limpa o formulário.
@@ -154,7 +176,14 @@ function resetForm() {
 }
 
 // Abre e fecha a janela de envio.
-openBtn.addEventListener('click', () => {
+openBtn.addEventListener('click', async () => {
+    await verificarEstadoEnvios();
+    await loadOptions();
+
+    if (!enviosAbertos || jaEnviouProposta) {
+        return;
+    }
+
     overlay.classList.add('open');
 });
 
@@ -167,6 +196,40 @@ overlay.addEventListener('click', event => {
     if (event.target === overlay) {
         overlay.classList.remove('open');
         resetForm();
+    }
+});
+
+// Botão "Ir votar".
+btnIrVotar.addEventListener('click', async () => {
+    btnIrVotar.disabled = true;
+    avisoVotacao.hidden = true;
+
+    try {
+        const resp = await fetch(
+            '../../backend/votacao_backend/votacao.php',
+            {
+                credentials: 'include',
+                cache: 'no-store'
+            }
+        );
+
+        const dados = await resp.json();
+
+        if (dados && dados.success && dados.votacao_aberta) {
+            window.location.href = '../votacao_frontend/votacao.html';
+            return;
+        }
+
+        avisoVotacao.textContent = 'A votação não está em andamento.';
+        avisoVotacao.hidden = false;
+    } catch (error) {
+        console.error(error);
+
+        avisoVotacao.textContent =
+            'Não foi possível verificar o estado da votação.';
+        avisoVotacao.hidden = false;
+    } finally {
+        btnIrVotar.disabled = false;
     }
 });
 
@@ -436,6 +499,8 @@ async function loadOptions() {
         }
 
         const rows = data.opcoes || [];
+        jaEnviouProposta = rows.length > 0;
+        updateSubmit();
 
         countLabel.textContent =
             `${rows.length} ${rows.length === 1 ? 'opção' : 'opções'}`;
@@ -519,6 +584,8 @@ submitBtn.addEventListener('click', async () => {
         setStatus('Enviando as três camisas…');
 
         await enviarParaServidor();
+        jaEnviouProposta = true;
+        updateSubmit();
 
         setStatus('Camisas enviadas com sucesso!', 'ok');
 
@@ -543,7 +610,89 @@ submitBtn.addEventListener('click', async () => {
 });
 
 // Carrega as propostas ao abrir a página.
-loadOptions();
+async function verificarEstadoEnvios() {
+    try {
+        const response = await fetch(
+            '../../backend/uploud_backend/estado_envios.php',
+            {
+                credentials: 'include',
+                cache: 'no-store'
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.message || 'Não foi possível verificar os envios.'
+            );
+        }
+
+        enviosAbertos = data.envios_abertos === true;
+
+        if (!enviosAbertos) {
+            openBtn.textContent = 'Envios encerrados';
+            setStatus(
+                'O período de envio foi encerrado. Aguarde a votação.',
+                'err'
+            );
+
+            overlay.classList.remove('open');
+            resetForm();
+        } else {
+            openBtn.textContent = '+ Enviar as 3 camisas';
+            setStatus();
+        }
+
+        updateSubmit();
+    } catch (error) {
+        console.error(error);
+
+        enviosAbertos = false;
+        openBtn.textContent = 'Não foi possível verificar os envios';
+
+        setStatus(
+            'Não foi possível verificar se os envios estão abertos. Tente novamente.',
+            'err'
+        );
+
+        updateSubmit();
+    }
+}
+
+async function verificarEstadoVotacao() {
+    try {
+        const resp = await fetch(
+            '../../backend/votacao_backend/votacao.php',
+            { credentials: 'include', cache: 'no-store' }
+        );
+        const dados = await resp.json();
+
+        if (!dados || !dados.success) {
+            avisoVotacao.hidden = true;
+            return;
+        }
+
+        if (dados.votacao_aberta) {
+            avisoVotacao.textContent = dados.ja_votou
+                ? 'Votação em andamento — você já votou.'
+                : 'Votação em andamento — vá votar.';
+        } else {
+            avisoVotacao.textContent = 'A votação está encerrada.';
+        }
+
+        avisoVotacao.hidden = false;
+    } catch (error) {
+        console.error(error);
+        avisoVotacao.hidden = true;
+    }
+}
+
+Promise.all([
+    verificarEstadoEnvios(),
+    loadOptions(),
+    verificarEstadoVotacao()
+]);
 </script>
 
 </body>

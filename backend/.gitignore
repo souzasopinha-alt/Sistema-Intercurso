@@ -1,2 +1,5 @@
+uploads/
+pagamentos/uploads/
+uploud_backend/uploads/
+*.log
 .env
-

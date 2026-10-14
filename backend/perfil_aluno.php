@@ -1,4 +1,3 @@
-
 <?php
 
 session_start();
@@ -38,6 +37,13 @@ try {
         exit;
     }
 
+    // Flag de pedidos abertos
+    $stmt = $pdo->query(
+        "SELECT valor FROM configuracoes WHERE chave = 'pedidos_abertos' LIMIT 1"
+    );
+    $pedidosAbertos = $stmt->fetchColumn() === '1';
+
+    // Todos os pedidos do usuário, mais recente primeiro
     $stmt = $pdo->prepare("
         SELECT
             id,
@@ -50,17 +56,17 @@ try {
             metodo_pagamento
         FROM pedidos
         WHERE usuario_id = ?
-        ORDER BY data_pedido DESC, id DESC
-        LIMIT 1
+        ORDER BY id DESC
     ");
     $stmt->execute([$usuarioId]);
 
-    $pedido = $stmt->fetch(PDO::FETCH_ASSOC);
+    $pedidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode([
         'sucesso' => true,
         'usuario' => $usuario,
-        'pedido' => $pedido ?: null
+        'pedidos' => $pedidos,
+        'pedidos_abertos' => $pedidosAbertos
     ], JSON_UNESCAPED_UNICODE);
 
 } catch (PDOException $e) {

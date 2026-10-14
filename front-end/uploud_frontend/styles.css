@@ -655,6 +655,45 @@ footer {
   }
 }
 
+/* Botão "Ir votar" */
+.votacao-cta {
+    margin: 2.5rem auto 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .75rem;
+    text-align: center;
+}
+
+.votacao-cta #btnIrVotar {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: .02em;
+    padding: .85rem 2rem;
+    border: 2px solid currentColor;
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    transition: transform .15s ease, background .15s ease, color .15s ease;
+}
+
+.votacao-cta #btnIrVotar:hover:not(:disabled) {
+    transform: translateY(-2px);
+}
+
+.votacao-cta #btnIrVotar:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+.votacao-cta .aviso {
+    margin: 0;
+    font-size: .9rem;
+    opacity: .8;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

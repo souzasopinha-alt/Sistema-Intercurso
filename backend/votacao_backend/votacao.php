@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 
@@ -11,74 +12,61 @@ function resposta(
     array $extra = []
 ): never {
     http_response_code($status);
-
     echo json_encode(
-        array_merge(
-            ['success' => $ok, 'message' => $message],
-            $extra
-        ),
+        array_merge(['success' => $ok, 'message' => $message], $extra),
         JSON_UNESCAPED_UNICODE
     );
-
     exit;
 }
 
 if (empty($_SESSION['usuario_id'])) {
-    resposta(false, 'Você precisa estar logado para votar.', 401);
+    resposta(false, 'Você precisa estar logado.', 401);
 }
 
 if (!isset($pdo) || !($pdo instanceof PDO)) {
-    resposta(false, 'Conexão com o MariaDB não encontrada.', 500);
+    resposta(false, 'Conexão com o banco indisponível.', 500);
 }
 
 $usuarioId = (int) $_SESSION['usuario_id'];
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
+    $stmt = $pdo->query(
+        "SELECT valor FROM configuracoes
+         WHERE chave = 'votacao_aberta' LIMIT 1"
+    );
+    $votacaoAberta = $stmt->fetchColumn() === '1';
+
     if ($method === 'GET') {
-        // Busca as propostas aprovadas no MariaDB.
         $stmt = $pdo->query(
-            'SELECT id, nome, imagem1, imagem2, imagem3
-             FROM opcoes
-             WHERE aprovado = 1
-             ORDER BY id ASC'
+            'SELECT o.id, o.nome, o.imagem1, o.imagem2, o.imagem3,
+                    COUNT(v.id) AS total_votos
+             FROM opcoes o
+             LEFT JOIN votos_realizados v ON v.opcao_id = o.id
+             WHERE o.aprovado = 1
+             GROUP BY o.id, o.nome, o.imagem1, o.imagem2, o.imagem3
+             ORDER BY o.id ASC'
         );
 
         $opcoes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Busca a quantidade de votos de cada proposta.
-        $stmt = $pdo->query(
-            'SELECT opcao_id, total_votos FROM contagem_votos'
-        );
-
-        $contagens = [];
-
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $linha) {
-            $contagens[(int) $linha['opcao_id']] =
-                (int) $linha['total_votos'];
-        }
-
-        // Verifica se o aluno já votou.
         $stmt = $pdo->prepare(
             'SELECT 1 FROM votos_realizados
-             WHERE usuario_id = ?
-             LIMIT 1'
+             WHERE usuario_id = ? LIMIT 1'
         );
-
         $stmt->execute([$usuarioId]);
         $jaVotou = (bool) $stmt->fetchColumn();
 
         foreach ($opcoes as $i => &$opcao) {
             $opcao['numero'] = $i + 1;
-            $opcao['total_votos'] =
-                $contagens[(int) $opcao['id']] ?? 0;
+            $opcao['total_votos'] = (int) $opcao['total_votos'];
         }
-
         unset($opcao);
 
         resposta(true, '', 200, [
             'opcoes' => $opcoes,
-            'ja_votou' => $jaVotou
+            'ja_votou' => $jaVotou,
+            'votacao_aberta' => $votacaoAberta
         ]);
     }
 
@@ -86,15 +74,15 @@ try {
         resposta(false, 'Método não permitido.', 405);
     }
 
-    // Recebe a opção escolhida pelo aluno.
-    $dados = json_decode(file_get_contents('php://input'), true);
-
-    if (!is_array($dados)) {
-        resposta(false, 'Dados inválidos.', 400);
+    if (!$votacaoAberta) {
+        resposta(false, 'A votação está encerrada.', 403, [
+            'votacao_aberta' => false
+        ]);
     }
 
+    $dados = json_decode(file_get_contents('php://input'), true);
     $opcaoId = filter_var(
-        $dados['opcao_id'] ?? null,
+        is_array($dados) ? ($dados['opcao_id'] ?? null) : null,
         FILTER_VALIDATE_INT
     );
 
@@ -102,41 +90,37 @@ try {
         resposta(false, 'Opção inválida.', 400);
     }
 
-    // Confirma que a proposta existe e está aprovada.
-    $stmt = $pdo->prepare(
-        'SELECT id FROM opcoes
-         WHERE id = ? AND aprovado = 1'
-    );
-
-    $stmt->execute([$opcaoId]);
-
-    if (!$stmt->fetchColumn()) {
-        resposta(
-            false,
-            'A opção escolhida não existe ou não está disponível.',
-            400
-        );
-    }
-
-    // Registra o voto e atualiza a contagem na mesma transação.
     $pdo->beginTransaction();
 
     try {
+        $stmt = $pdo->query(
+            "SELECT valor FROM configuracoes
+             WHERE chave = 'votacao_aberta' FOR UPDATE"
+        );
+
+        if ($stmt->fetchColumn() !== '1') {
+            $pdo->rollBack();
+            resposta(false, 'A votação está encerrada.', 403, [
+                'votacao_aberta' => false
+            ]);
+        }
+
+        $stmt = $pdo->prepare(
+            'SELECT id FROM opcoes
+             WHERE id = ? AND aprovado = 1 LIMIT 1'
+        );
+        $stmt->execute([$opcaoId]);
+
+        if (!$stmt->fetchColumn()) {
+            $pdo->rollBack();
+            resposta(false, 'Essa opção não está disponível.', 400);
+        }
+
         $stmt = $pdo->prepare(
             'INSERT INTO votos_realizados (usuario_id, opcao_id)
              VALUES (?, ?)'
         );
-
         $stmt->execute([$usuarioId, $opcaoId]);
-
-        $stmt = $pdo->prepare(
-            'INSERT INTO contagem_votos (opcao_id, total_votos)
-             VALUES (?, 1)
-             ON DUPLICATE KEY UPDATE
-             total_votos = total_votos + 1'
-        );
-
-        $stmt->execute([$opcaoId]);
 
         $pdo->commit();
 
@@ -146,13 +130,8 @@ try {
             $pdo->rollBack();
         }
 
-        // A restrição UNIQUE impede votos duplicados do mesmo aluno.
         if (($e->errorInfo[1] ?? null) == 1062) {
-            resposta(
-                false,
-                'Você já votou. Cada usuário pode votar apenas uma vez.',
-                409
-            );
+            resposta(false, 'Você já votou. Cada aluno pode votar uma vez.', 409);
         }
 
         throw $e;
@@ -163,6 +142,5 @@ try {
     }
 
     error_log('votacao.php: ' . $e->getMessage());
-
-    resposta(false, 'Não foi possível concluir a votação.', 500);
+    resposta(false, 'Não foi possível concluir a operação.', 500);
 }

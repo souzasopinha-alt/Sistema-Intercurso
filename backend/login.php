@@ -141,6 +141,29 @@ if (!$usuario) {
 }
     }
 
+        // ---------- Próximo passo do aluno ----------
+    $proximoPasso = 'uploud_frontend/uploud_camisas.html';
+
+    if (strtoupper((string) $usuario['tipo']) === 'ALUNO') {
+        $stmt = $pdo->query(
+            "SELECT valor FROM configuracoes
+             WHERE chave = 'pedidos_abertos' LIMIT 1"
+        );
+        $pedidosAbertos = $stmt->fetchColumn() === '1';
+
+                        if ($pedidosAbertos) {
+            $stmt = $pdo->prepare(
+                "SELECT COUNT(*) FROM pedidos WHERE usuario_id = ?"
+            );
+            $stmt->execute([$usuario['id']]);
+            $totalPedidos = (int) $stmt->fetchColumn();
+
+            $proximoPasso = $totalPedidos === 0
+                ? 'pedido.html'
+                : 'perfil.html';
+        }
+    }
+
     // Confirma a criação da conta e a atualização do e-mail em conjunto.
     $pdo->commit();
 
@@ -152,12 +175,12 @@ if (!$usuario) {
     $_SESSION['email'] = $usuario['email'];
     $_SESSION['tipo'] = $usuario['tipo'];
 
-    echo json_encode([
+        echo json_encode([
         'sucesso' => true,
         'mensagem' => 'Login realizado com sucesso.',
-        'tipo' => $usuario['tipo']
+        'tipo' => $usuario['tipo'],
+        'proximo_passo' => $proximoPasso
     ], JSON_UNESCAPED_UNICODE);
-
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();

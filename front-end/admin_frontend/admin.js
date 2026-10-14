@@ -14,7 +14,18 @@ const ENDPOINTS = {
     votos: '../../backend/admin_backend/admin_votos.php',
     aprovar: '../../backend/pagamentos/aprovar.php',
     recusar: '../../backend/pagamentos/recusar.php',
-    usuarios: '../../backend/usuarios.php'
+    usuarios: '../../backend/usuarios.php',
+    iniciarVotacao: '../../backend/admin_backend/iniciar_votacao.php',
+    estadoVotacao: '../../backend/admin_backend/estado_votacao.php',
+    encerrarVotacao: '../../backend/admin_backend/encerrar_votacao.php',
+    reabrirEnvios: '../../backend/admin_backend/reabrir_envios.php',
+    reabrirVotacao: '../../backend/admin_backend/reabrir_votacao.php',
+    excluirUsuario: '../../backend/admin_backend/excluir_usuario.php',
+    estadoAcoes:     '../../backend/admin_backend/estado_acoes.php',
+    iniciarPedidos:  '../../backend/admin_backend/iniciar_pedidos.php',
+    encerrarPedidos: '../../backend/admin_backend/encerrar_pedidos.php',
+    reabrirPedidos:  '../../backend/admin_backend/reabrir_pedidos.php',
+    excluirPedido: '../../backend/admin_backend/excluir_pedido.php'
 };
 
 let pedidosCache = [];
@@ -239,12 +250,19 @@ function renderPedidos() {
       <td>${esc(p.nomeCamisa || '—')}</td>
       <td>${statusPill(p.status)}</td>
       <td>${esc(formatarData(p.data))}</td>
-      <td>
+                  <td>
         <div class="order-actions">
           ${p.status === 'PENDENTE'
-            ? `<button class="btn btn--danger btn--small" data-recusar="${esc(p.id)}">Recusar</button>
-               <button class="btn btn--success btn--small" data-aprovar="${esc(p.id)}">Aceitar</button>`
+            ? `<button class="btn btn--danger btn--small btn-icone" data-recusar="${esc(p.id)}" title="Recusar" aria-label="Recusar">✕</button>
+               <button class="btn btn--success btn--small btn-icone" data-aprovar="${esc(p.id)}" title="Aceitar" aria-label="Aceitar">✓</button>`
             : `<span class="action-muted">Sem ações</span>`}
+
+          <button type="button"
+                  class="btn-excluir-pedido btn-icone"
+                  data-excluir="${esc(p.id)}"
+                  data-aluno="${esc(p.aluno || '')}"
+                  title="Excluir"
+                  aria-label="Excluir">🗑</button>
         </div>
       </td>
     </tr>
@@ -255,6 +273,12 @@ function renderPedidos() {
   );
   tbody.querySelectorAll('[data-recusar]').forEach(b =>
     b.addEventListener('click', () => abrirConfirmacao(b.dataset.recusar, 'RECUSADO'))
+  );
+
+    tbody.querySelectorAll('[data-excluir]').forEach(b =>
+    b.addEventListener('click', () =>
+      excluirPedido(Number(b.dataset.excluir), b.dataset.aluno)
+    )
   );
 }
 
@@ -490,6 +514,34 @@ async function enviarDecisao(acao) {
   }
 }
 
+async function excluirPedido(id, aluno) {
+  const ok = confirm(
+    `Excluir o pedido #${id}${aluno ? ` de "${aluno}"` : ''}?\n\n` +
+    'Isso remove também o comprovante anexado. Essa ação não pode ser desfeita.'
+  );
+  if (!ok) return;
+
+  try {
+    const resp = await fetch(ENDPOINTS.excluirPedido, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    const dados = await resp.json();
+
+    if (!resp.ok || !dados.success) {
+      throw new Error(dados.message || 'Não foi possível excluir o pedido.');
+    }
+
+    await atualizarPedidos();
+    mostrarToast('Pedido excluído.');
+  } catch (e) {
+    console.error(e);
+    mostrarToast(e.message || 'Não foi possível excluir o pedido.');
+  }
+}
+
 async function carregarUsuarios() {
   const tbody = document.getElementById('tabelaUsuarios');
   try {
@@ -498,7 +550,7 @@ async function carregarUsuarios() {
     const dados = await resp.json();
 
     if (!Array.isArray(dados) || !dados.length) {
-      tbody.innerHTML = '<tr><td colspan="4" class="table__empty">Nenhum usuário cadastrado.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="table__empty">Nenhum usuário cadastrado.</td></tr>';
       return;
     }
 
@@ -508,10 +560,52 @@ async function carregarUsuarios() {
         <td>${esc(u.email)}</td>
         <td>${esc(u.tipo)}</td>
         <td>${esc(u.situacao)}</td>
+        <td>
+          <button type="button" class="btn-excluir-usuario"
+                  data-id="${Number(u.id)}"
+                  data-nome="${esc(u.nome)}">
+            Excluir
+          </button>
+        </td>
       </tr>
     `).join('');
+
+    tbody.querySelectorAll('.btn-excluir-usuario').forEach(btn => {
+      btn.addEventListener('click', () => {
+        excluirUsuario(Number(btn.dataset.id), btn.dataset.nome);
+      });
+    });
   } catch (e) {
-    tbody.innerHTML = '<tr><td colspan="4" class="table__empty">Não foi possível carregar os usuários.</td></tr>';
+    console.error(e);
+    tbody.innerHTML = '<tr><td colspan="5" class="table__empty">Não foi possível carregar os usuários.</td></tr>';
+  }
+}
+
+async function excluirUsuario(id, nome) {
+  const ok = confirm(
+    `Excluir o usuário "${nome}"?\n\n` +
+    'Isso remove também as propostas, os votos e os pedidos relacionados. ' +
+    'Essa ação não pode ser desfeita.'
+  );
+  if (!ok) return;
+
+  try {
+    const resp = await fetch(ENDPOINTS.excluirUsuario, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    const dados = await resp.json();
+
+    if (!resp.ok || !dados.success) {
+      throw new Error(dados.message || 'Não foi possível excluir o usuário.');
+    }
+
+    await carregarUsuarios();
+  } catch (e) {
+    console.error(e);
+    alert(e.message || 'Não foi possível excluir o usuário.');
   }
 }
 
@@ -568,40 +662,86 @@ if (formImportarAlunos) {
 }
 
 /* ============ VOTAÇÃO ============ */
+// helper de URL igual ao do aluno
+function urlImagem(path) {
+  return '../../backend/' +
+    String(path || '').split('/').map(encodeURIComponent).join('/');
+}
+
 async function carregarVotos() {
   const tbody = document.getElementById('tabelaVotos');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="2" class="table__empty">Carregando votos...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="3" class="table__empty">Carregando votos...</td></tr>';
 
   try {
-    const resp = await fetch(ENDPOINTS.votos, {
-      credentials: 'include',
-      cache: 'no-store'
-    });
+    const resp = await fetch(ENDPOINTS.votos, { credentials: 'include', cache: 'no-store' });
     const dados = await resp.json();
 
-    if (!resp.ok || !dados.success) {
-      throw new Error(dados.message || 'Não foi possível carregar os votos.');
-    }
+    if (!resp.ok || !dados.success) throw new Error(dados.message || 'Não foi possível carregar os votos.');
 
     if (!Array.isArray(dados.opcoes) || !dados.opcoes.length) {
-      tbody.innerHTML = '<tr><td colspan="2" class="table__empty">Nenhuma opção encontrada.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="3" class="table__empty">Nenhuma opção encontrada.</td></tr>';
       return;
     }
 
-    tbody.innerHTML = dados.opcoes.map(v => `
+    tbody.innerHTML = dados.opcoes.map((v, i) => `
       <tr>
         <td><strong>${esc(v.nome || `Opção ${v.numero}`)}</strong></td>
         <td><strong>${Number(v.total_votos || 0)}</strong></td>
+        <td>
+          <button type="button" class="btn-ver-camisas" data-index="${i}">Ver camisas</button>
+        </td>
       </tr>
     `).join('');
+
+    tbody.querySelectorAll('.btn-ver-camisas').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = dados.opcoes[Number(btn.dataset.index)];
+        abrirModalCamisas(item);
+      });
+    });
   } catch (e) {
     console.error(e);
     tbody.innerHTML =
-      '<tr><td colspan="2" class="table__empty">' +
+      '<tr><td colspan="3" class="table__empty">' +
       esc(e.message || 'Não foi possível carregar os votos.') +
       '</td></tr>';
   }
+}
+
+const modalCamisas = document.getElementById('modalCamisas');
+const modalCamisasGrid = document.getElementById('modalCamisasGrid');
+const modalCamisasTitulo = document.getElementById('modalCamisasTitulo');
+const fecharModalCamisas = document.getElementById('fecharModalCamisas');
+
+function abrirModalCamisas(item) {
+  if (!modalCamisas) return;
+
+  modalCamisasTitulo.textContent = item.nome || `Opção ${item.numero}`;
+  modalCamisasGrid.innerHTML = ['imagem1', 'imagem2', 'imagem3'].map((k, idx) => {
+    const src = urlImagem(item[k]);
+    const nome = `${(item.nome || 'opcao').replace(/\s+/g, '_')}_${idx + 1}.jpg`;
+    return `
+      <div class="camisa-slot">
+        <img src="${esc(src)}" alt="Camisa ${idx + 1}">
+        <a class="btn-download" href="${esc(src)}" download="${esc(nome)}">Baixar</a>
+      </div>
+    `;
+  }).join('');
+
+  modalCamisas.hidden = false;
+}
+
+if (fecharModalCamisas) {
+  fecharModalCamisas.addEventListener('click', () => {
+    modalCamisas.hidden = true;
+  });
+}
+
+if (modalCamisas) {
+  modalCamisas.addEventListener('click', e => {
+    if (e.target === modalCamisas) modalCamisas.hidden = true;
+  });
 }
 
 function renderRelatorio() {
@@ -663,9 +803,14 @@ function configurar() {
       document.querySelectorAll('.view').forEach(x => x.classList.remove('is-active'));
       document.getElementById(`view-${link.dataset.view}`).classList.add('is-active');
 
-      if (link.dataset.view === 'pedidos' || link.dataset.view === 'pendentes') await atualizarPedidos();
+            if (link.dataset.view === 'pedidos' || link.dataset.view === 'pendentes') await atualizarPedidos();
       if (link.dataset.view === 'usuarios') await carregarUsuarios();
       if (link.dataset.view === 'relatorio') { await atualizarPedidos(); renderRelatorio(); }
+      if (link.dataset.view === 'votacao' || link.dataset.view === 'acoes') await atualizarEstado();
+      if (link.dataset.view === 'votacao' || link.dataset.view === 'acoes') {
+    await atualizarEstado();
+    if (link.dataset.view === 'votacao') await carregarVotos();
+}
     });
   });
 
@@ -698,7 +843,196 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderRelatorio();
 });
 
+/* ---------- Estado global das ações (admin) ---------- */
+
+let _estadoAtual = {
+    envios_abertos: false,
+    votacao_aberta: false,
+    pedidos_abertos: false
+};
+
+async function consultarEstadoAcoes() {
+    const resp = await fetch(ENDPOINTS.estadoAcoes, {
+        credentials: 'include',
+        cache: 'no-store'
+    });
+    const dados = await resp.json();
+    if (!resp.ok || !dados.success) {
+        throw new Error(dados.message || 'Erro ao consultar estado.');
+    }
+    return dados;
+}
+
+function aplicarEstado(dados) {
+    _estadoAtual = {
+        envios_abertos:  !!dados.envios_abertos,
+        votacao_aberta:  !!dados.votacao_aberta,
+        pedidos_abertos: !!dados.pedidos_abertos
+    };
+
+    const { envios_abertos, votacao_aberta, pedidos_abertos } = _estadoAtual;
+
+    const pegar = id => document.getElementById(id);
+
+    // --- View Votação ---
+    const btnIniciar = pegar('btnIniciarVotacao');
+    const btnEncerrar = pegar('btnEncerrarVotacao');
+    const btnReabrirEnvios = pegar('btnReabrirEnvios');
+    const btnReabrirVotacao = pegar('btnReabrirVotacao');
+    const estadoVot = pegar('estadoVotacao');
+
+    if (btnIniciar) {
+        btnIniciar.disabled = !envios_abertos || votacao_aberta || pedidos_abertos;
+        if (votacao_aberta) btnIniciar.textContent = 'Votação iniciada';
+        else if (!envios_abertos) btnIniciar.textContent = 'Envios encerrados';
+        else btnIniciar.textContent = 'Encerrar envios e iniciar votação';
+    }
+
+    if (btnEncerrar) {
+        btnEncerrar.disabled = !votacao_aberta;
+        btnEncerrar.textContent = votacao_aberta ? 'Encerrar votação' : 'Votação encerrada';
+    }
+
+    if (btnReabrirEnvios) {
+        btnReabrirEnvios.disabled = envios_abertos || votacao_aberta || pedidos_abertos;
+    }
+
+    if (btnReabrirVotacao) {
+        btnReabrirVotacao.disabled = votacao_aberta || envios_abertos || pedidos_abertos;
+    }
+
+    if (estadoVot) {
+        if (votacao_aberta)          estadoVot.textContent = 'A votação está aberta.';
+        else if (pedidos_abertos)    estadoVot.textContent = 'A votação terminou. Pedidos estão abertos.';
+        else if (!envios_abertos)    estadoVot.textContent = 'Os envios estão encerrados, mas a votação não está aberta.';
+        else                         estadoVot.textContent = 'Os envios de camisas estão abertos.';
+    }
+
+    // --- View Ações ---
+    const btnIniPed = pegar('btnIniciarPedidos');
+    const btnEncPed = pegar('btnEncerrarPedidos');
+    const btnReaPed = pegar('btnReabrirPedidos');
+    const estadoAc = pegar('estadoAcoes');
+
+    const podeAbrirPedidos = !votacao_aberta && !envios_abertos && !pedidos_abertos;
+
+    if (btnIniPed) btnIniPed.disabled = !podeAbrirPedidos;
+    if (btnReaPed) btnReaPed.disabled = !podeAbrirPedidos;
+    if (btnEncPed) {
+        btnEncPed.disabled = !pedidos_abertos;
+        btnEncPed.textContent = pedidos_abertos ? 'Encerrar pedidos' : 'Pedidos encerrados';
+    }
+
+    if (estadoAc) {
+        if (pedidos_abertos)   estadoAc.textContent = 'Os pedidos estão abertos. Alunos podem acessar o fluxo pedido → pagamento → perfil.';
+        else if (votacao_aberta) estadoAc.textContent = 'A votação está em andamento. Encerre-a para liberar os pedidos.';
+        else if (envios_abertos) estadoAc.textContent = 'Os envios estão abertos. Encerre-os e conclua a votação antes de abrir pedidos.';
+        else                   estadoAc.textContent = 'Os pedidos estão encerrados.';
+    }
+}
+
+async function atualizarEstado() {
+    try {
+        const dados = await consultarEstadoAcoes();
+        aplicarEstado(dados);
+    } catch (erro) {
+        const estadoVot = document.getElementById('estadoVotacao');
+        const estadoAc = document.getElementById('estadoAcoes');
+        if (estadoVot) estadoVot.textContent = erro.message;
+        if (estadoAc)  estadoAc.textContent  = erro.message;
+    }
+}
+
+async function executarAcao(endpoint, confirmacao, progresso) {
+    if (!confirm(confirmacao)) return;
+
+    const estadoVot = document.getElementById('estadoVotacao');
+    const estadoAc = document.getElementById('estadoAcoes');
+
+    if (estadoVot) estadoVot.textContent = progresso;
+    if (estadoAc)  estadoAc.textContent  = progresso;
+
+    try {
+        const resp = await fetch(endpoint, {
+            method: 'POST',
+            credentials: 'include',
+            cache: 'no-store'
+        });
+        const dados = await resp.json();
+        if (!resp.ok || !dados.success) {
+            throw new Error(dados.message || 'Falha na operação.');
+        }
+        await atualizarEstado();
+        if (typeof carregarVotos === 'function') {
+            await carregarVotos();
+        }
+    } catch (erro) {
+        if (estadoVot) estadoVot.textContent = erro.message;
+        if (estadoAc)  estadoAc.textContent  = erro.message;
+        await atualizarEstado();
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('btnAtualizarVotos');
-  if (btn) btn.addEventListener('click', carregarVotos);
+    atualizarEstado();
+
+    document.getElementById('btnIniciarVotacao')?.addEventListener('click', () =>
+        executarAcao(
+            ENDPOINTS.iniciarVotacao,
+            'Encerrar os envios e iniciar a votação? Depois disso, os alunos não poderão enviar novas propostas.',
+            'Iniciando votação...'
+        )
+    );
+
+    document.getElementById('btnEncerrarVotacao')?.addEventListener('click', () =>
+        executarAcao(
+            ENDPOINTS.encerrarVotacao,
+            'Deseja encerrar a votação? Os alunos não poderão mais votar.',
+            'Encerrando votação...'
+        )
+    );
+
+    document.getElementById('btnReabrirEnvios')?.addEventListener('click', () =>
+        executarAcao(
+            ENDPOINTS.reabrirEnvios,
+            'Reabrir os envios de camisas? Os alunos poderão enviar novas propostas novamente.',
+            'Reabrindo envios...'
+        )
+    );
+
+    document.getElementById('btnReabrirVotacao')?.addEventListener('click', () =>
+        executarAcao(
+            ENDPOINTS.reabrirVotacao,
+            'Reabrir a votação? Alunos que já votaram continuam sem poder votar de novo.',
+            'Reabrindo votação...'
+        )
+    );
+
+    document.getElementById('btnIniciarPedidos')?.addEventListener('click', () =>
+        executarAcao(
+            ENDPOINTS.iniciarPedidos,
+            'Iniciar os pedidos? Os alunos passarão a ter acesso ao fluxo pedido → pagamento → perfil.',
+            'Iniciando pedidos...'
+        )
+    );
+
+    document.getElementById('btnEncerrarPedidos')?.addEventListener('click', () =>
+        executarAcao(
+            ENDPOINTS.encerrarPedidos,
+            'Encerrar os pedidos? Novos pedidos não poderão ser feitos.',
+            'Encerrando pedidos...'
+        )
+    );
+
+        document.getElementById('btnAtualizarVotos')?.addEventListener('click', () => {
+        if (typeof carregarVotos === 'function') carregarVotos();
+    });
+
+    document.getElementById('btnReabrirPedidos')?.addEventListener('click', () =>
+        executarAcao(
+            ENDPOINTS.reabrirPedidos,
+            'Reabrir os pedidos? Alunos voltarão a poder acessar o fluxo.',
+            'Reabrindo pedidos...'
+        )
+    );
 });

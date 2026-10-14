@@ -1,13 +1,177 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Votação — InterCurso</title><link rel="stylesheet" href="votacao.css"></head><body><main class="page"><header><h1>Votação das camisas</h1><p>Escolha uma opção. Cada usuário pode votar uma única vez.</p></header><div id="status" class="status"></div><section id="lista" class="grid"><div class="empty">Carregando opções...</div></section></main><script>
-const lista=document.getElementById('lista'),statusEl=document.getElementById('status');let dados=[];
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-function img(path){
-    return '../../backend/' +
-        String(path || '').split('/').map(encodeURIComponent).join('/');
-}
-function status(t,cls=''){statusEl.className='status '+cls;statusEl.textContent=t;}
-const API_VOTACAO='../../backend/votacao_backend/votacao.php';
-async function carregar(){try{const r=await fetch(API_VOTACAO,{credentials:'include',cache:'no-store'});const j=await r.json();if(!r.ok||!j.success)throw Error(j.message||'Falha');dados=j.opcoes||[];if(!dados.length){lista.innerHTML='<div class="empty">Nenhuma opção disponível.</div>';return;}lista.innerHTML=dados.map(o=>`<article class="card"><h2>Opção ${o.numero}</h2><div class="imgs"><img src="${img(o.imagem1)}" alt="Opção ${o.numero} — Informática"><img src="${img(o.imagem2)}" alt="Opção ${o.numero} — Contabilidade"><img src="${img(o.imagem3)}" alt="Opção ${o.numero} — Enfermagem"></div><div class="bottom"><span>${Number(o.total_votos||0)} voto(s)</span><button data-id="${o.id}" ${j.ja_votou?'disabled':''}>${j.ja_votou?'Voto já registrado':'Votar nesta opção'}</button></div></article>`).join('');if(j.ja_votou)status('Seu voto já foi registrado.','ok');lista.querySelectorAll('button').forEach(b=>b.onclick=()=>votar(Number(b.dataset.id),b));}catch(e){console.error(e);status(e.message||'Não foi possível carregar a votação.','err');lista.innerHTML='<div class="empty">Não foi possível carregar as opções.</div>';}}
-async function votar(id,btn){if(!confirm('Confirmar seu voto nesta opção?'))return;btn.disabled=true;status('Registrando voto...');try{const r=await fetch(API_VOTACAO,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({opcao_id:id})});const j=await r.json();if(!r.ok||!j.success)throw Error(j.message||'Não foi possível votar.');status('Voto registrado com sucesso.','ok');await carregar();}catch(e){btn.disabled=false;status(e.message||'Não foi possível registrar o voto.','err');}}
-carregar();
-</script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Votação — InterCurso</title>
+    <link rel="stylesheet" href="votacao.css">
+</head>
+<body>
+    <main class="page">
+        <header>
+            <h1>Votação das camisas</h1>
+            <p>Escolha uma opção. Cada usuário pode votar uma única vez.</p>
+            <a class="back-link" href="../uploud_frontend/uploud_camisas.html">← Voltar para envio</a>
+        </header>
+
+        <div id="status" class="status" role="status" aria-live="polite"></div>
+
+        <section id="lista" class="grid">
+            <div class="empty">Carregando opções...</div>
+        </section>
+    </main>
+
+    <script>
+        const lista = document.getElementById('lista');
+        const statusEl = document.getElementById('status');
+
+        const API_VOTACAO = '../../backend/votacao_backend/votacao.php';
+
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        }[c]));
+
+        function img(path) {
+            return '../../backend/' +
+                String(path || '').split('/').map(encodeURIComponent).join('/');
+        }
+
+        function status(texto, classe = '') {
+            statusEl.className = 'status ' + classe;
+            statusEl.textContent = texto;
+        }
+
+        function mostrarVotacaoFechada(mensagem) {
+            status(mensagem || 'A votação ainda não começou.');
+            lista.innerHTML =
+                '<div class="empty">Aguarde o administrador iniciar a votação.</div>';
+        }
+
+        async function carregar() {
+            lista.innerHTML = '<div class="empty">Carregando opções...</div>';
+
+            try {
+                const resposta = await fetch(API_VOTACAO, {
+                    credentials: 'include',
+                    cache: 'no-store'
+                });
+
+                const dados = await resposta.json();
+
+                if (resposta.status === 401) {
+                    throw new Error('Faça login para acessar a votação.');
+                }
+
+                if (!resposta.ok || !dados.success) {
+                    throw new Error(dados.message || 'Não foi possível carregar a votação.');
+                }
+
+                const opcoes = dados.opcoes || [];
+                const votacaoEncerrada = !dados.votacao_aberta;
+
+                if (opcoes.length === 0) {
+                    status('A votação está aberta, mas ainda não há opções disponíveis.');
+                    lista.innerHTML = '<div class="empty">Nenhuma opção disponível.</div>';
+                    return;
+                }
+
+                if (dados.ja_votou) {
+                    status('Seu voto já foi registrado.', 'ok');
+                } else if (votacaoEncerrada) {
+                    status('A votação está encerrada.', 'ok');
+                } else {
+                    status('Escolha sua opção e confirme o voto.');
+                }
+
+                lista.innerHTML = opcoes.map(opcao => `
+                    <article class="card">
+                        <h2>Opção ${Number(opcao.numero)}</h2>
+
+                        <div class="imgs">
+                            <img src="${esc(img(opcao.imagem1))}"
+                                 alt="Opção ${Number(opcao.numero)} — Informática">
+                            <img src="${esc(img(opcao.imagem2))}"
+                                 alt="Opção ${Number(opcao.numero)} — Contabilidade">
+                            <img src="${esc(img(opcao.imagem3))}"
+                                 alt="Opção ${Number(opcao.numero)} — Enfermagem">
+                        </div>
+
+                        <div class="bottom">
+                            <span>${Number(opcao.total_votos || 0)} voto(s)</span>
+                            <button
+                                type="button"
+                                data-id="${Number(opcao.id)}"
+                                ${dados.ja_votou || votacaoEncerrada ? 'disabled' : ''}>
+                                ${votacaoEncerrada
+                                    ? 'Votação encerrada'
+                                    : dados.ja_votou
+                                        ? 'Voto já registrado'
+                                        : 'Votar nesta opção'}
+                            </button>
+                        </div>
+                    </article>
+                `).join('');
+
+                lista.querySelectorAll('button[data-id]').forEach(botao => {
+                    botao.addEventListener('click', () => {
+                        votar(Number(botao.dataset.id), botao);
+                    });
+                });
+
+            } catch (erro) {
+                console.error(erro);
+                status(erro.message || 'Não foi possível carregar a votação.', 'err');
+                lista.innerHTML =
+                    '<div class="empty">Não foi possível carregar as opções.</div>';
+            }
+        }
+
+        async function votar(id, botao) {
+            if (!confirm('Confirmar seu voto nesta opção?')) {
+                return;
+            }
+
+            botao.disabled = true;
+            status('Registrando voto...');
+
+            try {
+                const resposta = await fetch(API_VOTACAO, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    cache: 'no-store',
+                    body: JSON.stringify({ opcao_id: id })
+                });
+
+                const dados = await resposta.json();
+
+                if (resposta.status === 403 && dados.votacao_aberta === false) {
+                    status('A votação foi encerrada. Atualizando os resultados...');
+                    await carregar();
+                    return;
+                }
+
+                if (!resposta.ok || !dados.success) {
+                    throw new Error(dados.message || 'Não foi possível registrar o voto.');
+                }
+
+                status('Voto registrado com sucesso.', 'ok');
+                await carregar();
+
+            } catch (erro) {
+                console.error(erro);
+                status(erro.message || 'Não foi possível registrar o voto.', 'err');
+                botao.disabled = false;
+            }
+        }
+
+        carregar();
+    </script>
+</body>
+</html>

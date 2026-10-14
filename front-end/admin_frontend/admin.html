@@ -35,6 +35,7 @@
       <li><button class="sidebar__link" data-view="usuarios">Usuários</button></li>
       <li><button class="sidebar__link" data-view="relatorio">Relatório</button></li>
       <li><button class="sidebar__link" data-view="votacao">Votação</button></li>
+      <li><button class="sidebar__link" data-view="acoes">Ações</button></li>
     </ul>
     <button class="sidebar__logout" id="btnLogoutSide" type="button">Sair</button>
   </nav>
@@ -192,23 +193,24 @@
 
       <div class="table-wrap">
         <table class="table">
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>E-mail</th>
-              <th>Tipo</th>
-              <th>Situação</th>
-            </tr>
-          </thead>
+  <thead>
+    <tr>
+      <th>Nome</th>
+      <th>E-mail</th>
+      <th>Tipo</th>
+      <th>Situação</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
 
-          <tbody id="tabelaUsuarios">
-            <tr>
-              <td colspan="4" class="table__empty">
-                Carregando usuários...
-              </td>
-            </tr>
-          </tbody>
-        </table>
+  <tbody id="tabelaUsuarios">
+    <tr>
+      <td colspan="5" class="table__empty">
+        Carregando usuários...
+      </td>
+    </tr>
+  </tbody>
+</table>
       </div>
     </section>
 
@@ -241,18 +243,70 @@
         <h1>Votação</h1>
         <p>Quantidade de votos recebidos por cada opção de camisa.</p>
       </div>
-      <div class="votos-toolbar">
-        <button class="btn btn--ghost votos-refresh" id="btnAtualizarVotos" type="button">Atualizar votos</button>
-      </div>
+      
+<div class="votos-toolbar">
+  <button class="btn btn--ghost votos-refresh" id="btnAtualizarVotos" type="button">
+    Atualizar votos
+  </button>
+
+  <button class="btn btn--success" id="btnIniciarVotacao" type="button">
+    Encerrar envios e iniciar votação
+  </button>
+
+  <button class="btn btn--warn" id="btnReabrirEnvios" type="button" disabled>
+    Reabrir envios
+  </button>
+
+  <button class="btn btn--warn" id="btnReabrirVotacao" type="button" disabled>
+    Reabrir votação
+  </button>
+
+  <button class="btn btn--danger" id="btnEncerrarVotacao" type="button" disabled>
+    Encerrar votação
+  </button>
+</div>
+
+<p id="estadoVotacao" role="status" aria-live="polite"></p>
+
       <div class="table-wrap">
         <table class="table votos-table">
-          <thead><tr><th>Opção</th><th>Quantidade de votos</th></tr></thead>
-          <tbody id="tabelaVotos">
-            <tr><td colspan="2" class="table__empty">Clique em Votação para carregar os votos.</td></tr>
-          </tbody>
-        </table>
+  <thead><tr><th>Opção</th><th>Quantidade de votos</th><th>Camisas</th></tr></thead>
+  <tbody id="tabelaVotos">
+    <tr><td colspan="3" class="table__empty">Clique em Votação para carregar os votos.</td></tr>
+  </tbody>
+</table>
       </div>
     </section>
+    <section class="view" id="view-acoes" hidden>
+  <div class="view__head">
+    <h1>Ações</h1>
+    <p>Controle o fluxo de liberação do Intercurso.</p>
+  </div>
+
+  <div class="acoes-bloco">
+    <h2>Pedidos</h2>
+    <p>
+      Ao iniciar os pedidos, os alunos passam a ter acesso ao fluxo
+      pedido → pagamento → perfil.
+    </p>
+
+    <div class="votos-toolbar">
+      <button class="btn btn--success" id="btnIniciarPedidos" type="button" disabled>
+        Iniciar pedidos
+      </button>
+
+      <button class="btn btn--warn" id="btnReabrirPedidos" type="button" disabled>
+        Reabrir pedidos
+      </button>
+
+      <button class="btn btn--danger" id="btnEncerrarPedidos" type="button" disabled>
+        Encerrar pedidos
+      </button>
+    </div>
+
+    <p id="estadoAcoes" role="status" aria-live="polite"></p>
+  </div>
+</section>
 
   </main>
 </div>
@@ -284,6 +338,14 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="modal-overlay" id="modalCamisas" hidden>
+  <div class="modal-camisas">
+    <button class="modal-close" id="fecharModalCamisas" type="button">&times;</button>
+    <h3 id="modalCamisasTitulo">Camisas da opção</h3>
+    <div class="camisas-grid" id="modalCamisasGrid"></div>
+  </div>
+</div>
 
 <script src="admin.js"></script>
 </body>
