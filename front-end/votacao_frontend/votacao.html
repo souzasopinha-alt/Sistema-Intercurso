@@ -21,6 +21,11 @@
         </section>
     </main>
 
+    <div class="lightbox" id="lightbox" hidden>
+    <button class="lightbox-close" id="lightboxClose" type="button" aria-label="Fechar">&times;</button>
+    <img class="lightbox-img" id="lightboxImg" alt="">
+    </div>
+
     <script>
         const lista = document.getElementById('lista');
         const statusEl = document.getElementById('status');
@@ -170,6 +175,37 @@
                 botao.disabled = false;
             }
         }
+        
+        // ---------- Lightbox ----------
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightboxImg');
+const lightboxClose = document.getElementById('lightboxClose');
+
+function abrirLightbox(src) {
+    lightboxImg.src = src;
+    lightbox.hidden = false;
+}
+
+function fecharLightbox() {
+    lightbox.hidden = true;
+    lightboxImg.removeAttribute('src');
+}
+
+lightboxClose.addEventListener('click', fecharLightbox);
+
+lightbox.addEventListener('click', event => {
+    if (event.target === lightbox) fecharLightbox();
+});
+
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !lightbox.hidden) fecharLightbox();
+});
+
+lista.addEventListener('click', event => {
+    if (event.target.tagName === 'IMG') {
+        abrirLightbox(event.target.src);
+    }
+});
 
         carregar();
     </script>

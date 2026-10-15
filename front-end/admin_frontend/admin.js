@@ -1036,3 +1036,40 @@ document.addEventListener('DOMContentLoaded', () => {
         )
     );
 });
+
+// ---------- Lightbox do admin ----------
+const lightboxAdmin = document.getElementById('lightboxAdmin');
+const lightboxAdminImg = document.getElementById('lightboxAdminImg');
+const lightboxAdminClose = document.getElementById('lightboxAdminClose');
+
+function abrirLightboxAdmin(src) {
+    lightboxAdminImg.src = src;
+    lightboxAdmin.hidden = false;
+}
+
+function fecharLightboxAdmin() {
+    lightboxAdmin.hidden = true;
+    lightboxAdminImg.removeAttribute('src');
+}
+
+if (lightboxAdminClose) {
+    lightboxAdminClose.addEventListener('click', fecharLightboxAdmin);
+}
+
+if (lightboxAdmin) {
+    lightboxAdmin.addEventListener('click', event => {
+        if (event.target === lightboxAdmin) fecharLightboxAdmin();
+    });
+
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !lightboxAdmin.hidden) {
+            fecharLightboxAdmin();
+        }
+    });
+
+    document.addEventListener('click', event => {
+        if (event.target.matches('.camisa-slot img')) {
+            abrirLightboxAdmin(event.target.src);
+        }
+    });
+}

@@ -1487,6 +1487,62 @@ select {
     display: none;
 }
 
+.lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0, 0, 0, .92);
+    cursor: zoom-out;
+}
+
+.lightbox[hidden] { display: none; }
+
+.lightbox-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 14px;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, .55);
+    cursor: default;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 18px;
+    right: 22px;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .15);
+    color: #fff;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background .15s ease;
+}
+
+.lightbox-close:hover {
+    background: rgba(255, 255, 255, .28);
+}
+
+/* Cursor de zoom no modal de camisas */
+.camisa-slot img {
+    cursor: zoom-in;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.camisa-slot img:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .2);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
