@@ -105,19 +105,18 @@
                                  alt="Opção ${Number(opcao.numero)} — Enfermagem">
                         </div>
 
-                            <div class="bottom">
-                                <span>${Number(opcao.total_votos || 0)} voto(s)</span>
-                                <button
-                                    type="button"
-                                    data-id="${Number(opcao.id)}"
-                                    ${dados.ja_votou || votacaoEncerrada ? 'disabled' : ''}>
-                                    ${votacaoEncerrada
-                                        ? 'Votação encerrada'
-                                        : dados.ja_votou
-                                            ? 'Voto já registrado'
-                                            : 'Votar nesta opção'}
-                                </button>
-                            </div>
+                        <div class="bottom">
+                            <button
+                                type="button"
+                                data-id="${Number(opcao.id)}"
+                                ${dados.ja_votou || votacaoEncerrada ? 'disabled' : ''}>
+                                ${votacaoEncerrada
+                                    ? 'Votação encerrada'
+                                    : dados.ja_votou
+                                        ? 'Voto já registrado'
+                                        : 'Votar nesta opção'}
+                            </button>
+                        </div>
                     </article>
                 `).join('');
 

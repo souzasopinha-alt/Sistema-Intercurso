@@ -66,7 +66,7 @@ function criarDadoPedido(titulo, valor) {
     return dado;
 }
 
-function criarCartaoPedido(pedido, indice) {
+function criarCartaoPedido(pedido, indice, temPendente) {
     const cartao = criarElemento("article", "pedido");
     const cabecalho = criarElemento("div", "pedido-cabecalho");
     const identificacao = criarElemento("div", "");
@@ -101,10 +101,14 @@ function criarCartaoPedido(pedido, indice) {
     cartao.append(cabecalho, dados);
 
     if (status === "RECUSADO") {
+        const textoAviso = temPendente
+            ? "Este pedido foi recusado, mas você já tem um pedido pendente. Aguarde a análise para fazer um novo."
+            : "Este pedido foi recusado. Clique em \"Fazer novamente\" para enviar um novo.";
+
         const aviso = criarElemento(
             "p",
             "pedido-aviso-recusado",
-            "Este pedido foi recusado. Clique em \"Fazer novamente\" para enviar um novo."
+            textoAviso
         );
 
         const acoes = criarElemento("div", "pedido-acoes-recusado");
@@ -115,9 +119,15 @@ function criarCartaoPedido(pedido, indice) {
             "Fazer novamente"
         );
         botao.type = "button";
-        botao.addEventListener("click", () => {
-            window.location.href = "pedido.html";
-        });
+
+        if (temPendente) {
+            botao.disabled = true;
+            botao.title = "Você já tem um pedido pendente.";
+        } else {
+            botao.addEventListener("click", () => {
+                window.location.href = "pedido.html";
+            });
+        }
 
         acoes.appendChild(botao);
         cartao.append(aviso, acoes);
@@ -126,19 +136,52 @@ function criarCartaoPedido(pedido, indice) {
     return cartao;
 }
 
-function criarBotaoNovoPedido(texto) {
+function criarBotaoNovoPedido(texto, bloqueado = false) {
     const botao = criarElemento("button", "botao-novo-pedido", texto);
     botao.type = "button";
+
+    if (bloqueado) {
+        botao.disabled = true;
+        botao.title = "Você tem um pedido pendente. Aguarde a análise.";
+        return botao;
+    }
+
     botao.addEventListener("click", () => {
         window.location.href = "pedido.html";
     });
+
     return botao;
+}
+
+function criarAvisoPendente() {
+    const aviso = criarElemento("div", "aviso-pendente");
+    aviso.setAttribute("role", "alert");
+
+    const texto = criarElemento(
+        "p",
+        "aviso-pendente-texto",
+        "Você tem um pedido pendente. Só é possível fazer um novo pedido quando o anterior for aprovado ou recusado."
+    );
+
+    const fechar = criarElemento("button", "aviso-pendente-fechar", "×");
+    fechar.type = "button";
+    fechar.setAttribute("aria-label", "Fechar aviso");
+    fechar.addEventListener("click", () => {
+        aviso.remove();
+    });
+
+    aviso.append(texto, fechar);
+
+    return aviso;
 }
 
 function mostrarPedidos(pedidos, pedidosAbertos) {
     listaPedidos.replaceChildren();
 
     const lista = Array.isArray(pedidos) ? pedidos : [];
+    const temPendente = lista.some(
+        pedido => pedido.status_pagamento === "PENDENTE"
+    );
 
     if (lista.length === 0) {
         const vazio = criarElemento("div", "vazio");
@@ -161,12 +204,18 @@ function mostrarPedidos(pedidos, pedidosAbertos) {
     }
 
     lista.forEach((pedido, indice) => {
-        listaPedidos.appendChild(criarCartaoPedido(pedido, indice + 1));
+        listaPedidos.appendChild(criarCartaoPedido(pedido, indice + 1, temPendente));
     });
 
     if (pedidosAbertos) {
+        if (temPendente) {
+            listaPedidos.appendChild(criarAvisoPendente());
+        }
+
         const barra = criarElemento("div", "pedidos-acoes");
-        barra.appendChild(criarBotaoNovoPedido("+ Fazer mais um pedido"));
+        barra.appendChild(
+            criarBotaoNovoPedido("+ Fazer mais um pedido", temPendente)
+        );
         listaPedidos.appendChild(barra);
     }
 }

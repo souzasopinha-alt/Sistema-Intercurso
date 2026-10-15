@@ -203,3 +203,45 @@ try {
     campo.addEventListener("input", () => erro.textContent = "");
     campo.addEventListener("change", () => erro.textContent = "");
 });
+
+// Verifica se o aluno já tem pedido PENDENTE ao carregar a página.
+async function verificarPedidoPendente() {
+    try {
+        const resposta = await fetch("../backend/pedidos.php?meus=1", {
+            credentials: "include"
+        });
+
+        if (!resposta.ok) {
+            return false;
+        }
+
+        const lista = await resposta.json();
+
+        return Array.isArray(lista) &&
+            lista.some(p => p.status_pagamento === "PENDENTE");
+    } catch {
+        return false;
+    }
+}
+
+verificarPedidoPendente().then(pendente => {
+    if (!pendente) {
+        return;
+    }
+
+    const main = document.querySelector("main.container");
+
+    if (!main) {
+        return;
+    }
+
+    main.innerHTML = `
+        <div class="formulario-container">
+            <div class="cabecalho">
+                <h1>Você já tem um pedido pendente</h1>
+                <p>Só é possível fazer um novo pedido quando o anterior for
+                <strong>aprovado</strong> ou <strong>recusado</strong>.</p>
+            </div>
+        </div>
+    `;
+});

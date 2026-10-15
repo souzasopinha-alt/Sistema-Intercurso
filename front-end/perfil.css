@@ -413,3 +413,45 @@ footer {
         grid-template-columns: 1fr;
     }
 }
+
+/* Aviso de pedido pendente */
+.aviso-pendente {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    margin: 16px 0;
+    background: #fff8e1;
+    border: 1px solid #f0d98a;
+    border-left: 5px solid #d9a400;
+    border-radius: 8px;
+    color: #4a3a00;
+}
+
+.aviso-pendente-texto {
+    margin: 0;
+    flex: 1;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.aviso-pendente-fechar {
+    background: transparent;
+    border: none;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    color: #4a3a00;
+    padding: 0 4px;
+    border-radius: 4px;
+    transition: background 0.15s ease;
+}
+
+.aviso-pendente-fechar:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.botao-novo-pedido:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
