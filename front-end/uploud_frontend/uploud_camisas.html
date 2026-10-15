@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Intercurso — envie suas imagens</title>
+    <title>Intercurso — minhas propostas</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -30,26 +30,33 @@
         <h1>Envie suas<br><em>imagens</em></h1>
 
         <p class="lede">
-            Envie uma imagem da camisa de Informática,
-            uma de Contabilidade e uma de Enfermagem.
+            Envie uma proposta com três imagens — Informática, Contabilidade e Enfermagem.
+            Você pode enviar quantas propostas quiser enquanto os envios estiverem abertos.
         </p>
 
         <button class="upload-cta" id="openUpload" type="button">
-            + Enviar as 3 camisas
+            + Enviar nova proposta
         </button>
     </header>
 
     <main>
         <div class="section-label">
-            <h2>Camisas dos cursos</h2>
+            <h2>Minhas propostas</h2>
             <span id="countLabel">carregando…</span>
         </div>
 
         <div class="options-list" id="optionsList">
             <div class="empty">
-                <strong>Nenhuma camisa cadastrada</strong>
-                Envie as três camisas dos cursos para começar.
+                <strong>Nenhuma proposta enviada</strong>
+                <p>Clique em "Enviar nova proposta" para começar.</p>
             </div>
+        </div>
+
+        <div class="finalizar-cta" id="finalizarCta" hidden>
+            <button id="btnFinalizar" type="button">Enviar minhas opções</button>
+            <p class="aviso-finalizar">
+                Depois de finalizar, você não poderá enviar mais propostas.
+            </p>
         </div>
 
         <div class="votacao-cta">
@@ -59,7 +66,7 @@
     </main>
 
     <footer>
-        Envie as três imagens das camisas do Intercurso.
+        Envie suas propostas de camisas do Intercurso.
     </footer>
 
     <div class="overlay" id="overlay">
@@ -69,7 +76,7 @@
                 &times;
             </button>
 
-            <h3>Enviar camisas</h3>
+            <h3>Nova proposta</h3>
             <p class="hint">Selecione uma imagem para cada curso.</p>
 
             <label>Informática</label>
@@ -99,9 +106,14 @@
             <div class="status" id="uStatus"></div>
 
             <button class="submit-btn" id="submitBtn" type="button" disabled>
-                Enviar camisas
+                Enviar proposta
             </button>
         </div>
+    </div>
+
+    <div class="lightbox" id="lightbox" hidden>
+        <button class="lightbox-close" id="lightboxClose" type="button" aria-label="Fechar">&times;</button>
+        <img class="lightbox-img" id="lightboxImg" alt="">
     </div>
 
 <script>
@@ -125,12 +137,16 @@ const countLabel = document.getElementById('countLabel');
 const btnIrVotar = document.getElementById('btnIrVotar');
 const avisoVotacao = document.getElementById('avisoVotacao');
 
+const finalizarCta = document.getElementById('finalizarCta');
+const btnFinalizar = document.getElementById('btnFinalizar');
+
 const drops = [...document.querySelectorAll('.image-drop')];
 const inputs = [...document.querySelectorAll('.image-input')];
 
 let selectedFiles = [null, null, null];
 let enviosAbertos = true;
-let jaEnviouProposta = false;
+let enviosFinalizados = false;
+let temAlgumaProposta = false;
 
 // Exibe mensagens.
 function setStatus(message = '', type = '') {
@@ -138,22 +154,31 @@ function setStatus(message = '', type = '') {
     statusEl.className = 'status' + (type ? ' ' + type : '');
 }
 
-// Só libera o envio quando as três imagens estiverem prontas.
+// Atualiza botões de acordo com o estado atual.
 function updateSubmit() {
+    // Botão submit do modal
     submitBtn.disabled =
         !enviosAbertos ||
-        jaEnviouProposta ||
+        enviosFinalizados ||
         !selectedFiles.every(Boolean);
 
-    openBtn.disabled = !enviosAbertos || jaEnviouProposta;
-
-    if (jaEnviouProposta) {
-        openBtn.textContent = 'Proposta já enviada';
-    } else if (!enviosAbertos) {
+    // Botão principal (abre o modal)
+    if (!enviosAbertos) {
+        openBtn.disabled = true;
         openBtn.textContent = 'Envios encerrados';
+    } else if (enviosFinalizados) {
+        openBtn.disabled = true;
+        openBtn.textContent = 'Você finalizou suas propostas';
     } else {
-        openBtn.textContent = '+ Enviar as 3 camisas';
+        openBtn.disabled = false;
+        openBtn.textContent = '+ Enviar nova proposta';
     }
+
+    // Botão "Enviar minhas opções"
+    const mostrarFinalizar =
+        enviosAbertos && !enviosFinalizados && temAlgumaProposta;
+
+    finalizarCta.hidden = !mostrarFinalizar;
 }
 
 // Limpa o formulário.
@@ -180,7 +205,7 @@ openBtn.addEventListener('click', async () => {
     await verificarEstadoEnvios();
     await loadOptions();
 
-    if (!enviosAbertos || jaEnviouProposta) {
+    if (!enviosAbertos || enviosFinalizados) {
         return;
     }
 
@@ -196,6 +221,39 @@ overlay.addEventListener('click', event => {
     if (event.target === overlay) {
         overlay.classList.remove('open');
         resetForm();
+    }
+});
+
+// Botão "Enviar minhas opções"
+btnFinalizar.addEventListener('click', async () => {
+    if (!confirm('Finalizar suas propostas? Depois disso, você não poderá enviar mais.')) {
+        return;
+    }
+
+    btnFinalizar.disabled = true;
+    btnFinalizar.textContent = 'Finalizando...';
+
+    try {
+        const resp = await fetch(
+            '../../backend/uploud_backend/finalizar_envios.php',
+            { method: 'POST', credentials: 'include' }
+        );
+
+        const dados = await resp.json();
+
+        if (!resp.ok || !dados.success) {
+            throw new Error(dados.message || 'Não foi possível finalizar.');
+        }
+
+        enviosFinalizados = true;
+        updateSubmit();
+        await loadOptions();
+    } catch (erro) {
+        console.error(erro);
+        alert(erro.message || 'Não foi possível finalizar.');
+    } finally {
+        btnFinalizar.disabled = false;
+        btnFinalizar.textContent = 'Enviar minhas opções';
     }
 });
 
@@ -340,7 +398,6 @@ async function compressImageForUpload(file) {
             blob = await canvasToBlob(canvas, quality);
         }
 
-        // Se a conversão não reduzir o tamanho, mantém o original.
         if (blob.size >= file.size) {
             return file;
         }
@@ -364,7 +421,6 @@ async function compressImageForUpload(file) {
 inputs.forEach((input, index) => {
     const drop = drops[index];
 
-    // Evita abrir o seletor de arquivos duas vezes.
     drop.addEventListener('click', event => {
         if (event.target !== input) {
             input.click();
@@ -499,19 +555,19 @@ async function loadOptions() {
         }
 
         const rows = data.opcoes || [];
-        jaEnviouProposta = rows.length > 0;
+
+        temAlgumaProposta = rows.length > 0;
         updateSubmit();
 
         countLabel.textContent =
-            `${rows.length} ${rows.length === 1 ? 'opção' : 'opções'}`;
+            `${rows.length} ${rows.length === 1 ? 'proposta' : 'propostas'}`;
 
         if (rows.length === 0) {
             optionsList.innerHTML =
                 '<div class="empty">' +
-                '<strong>Nenhuma camisa cadastrada</strong>' +
-                'Envie as três camisas dos cursos para começar.' +
+                '<strong>Nenhuma proposta enviada</strong>' +
+                '<p>Clique em "Enviar nova proposta" para começar.</p>' +
                 '</div>';
-
             return;
         }
 
@@ -560,6 +616,9 @@ async function loadOptions() {
     } catch (error) {
         console.error(error);
 
+        temAlgumaProposta = false;
+        updateSubmit();
+
         countLabel.textContent = 'erro';
 
         optionsList.innerHTML =
@@ -584,12 +643,9 @@ submitBtn.addEventListener('click', async () => {
         setStatus('Enviando as três camisas…');
 
         await enviarParaServidor();
-        jaEnviouProposta = true;
-        updateSubmit();
 
-        setStatus('Camisas enviadas com sucesso!', 'ok');
+        setStatus('Proposta enviada com sucesso!', 'ok');
 
-        // Atualiza a lista após salvar a nova proposta.
         await loadOptions();
 
         setTimeout(() => {
@@ -604,12 +660,12 @@ submitBtn.addEventListener('click', async () => {
             'err'
         );
     } finally {
-        submitBtn.textContent = 'Enviar camisas';
+        submitBtn.textContent = 'Enviar proposta';
         updateSubmit();
     }
 });
 
-// Carrega as propostas ao abrir a página.
+// Carrega o estado dos envios e da votação.
 async function verificarEstadoEnvios() {
     try {
         const response = await fetch(
@@ -629,9 +685,9 @@ async function verificarEstadoEnvios() {
         }
 
         enviosAbertos = data.envios_abertos === true;
+        enviosFinalizados = data.envios_finalizados === true;
 
         if (!enviosAbertos) {
-            openBtn.textContent = 'Envios encerrados';
             setStatus(
                 'O período de envio foi encerrado. Aguarde a votação.',
                 'err'
@@ -639,8 +695,12 @@ async function verificarEstadoEnvios() {
 
             overlay.classList.remove('open');
             resetForm();
+        } else if (enviosFinalizados) {
+            setStatus(
+                'Você finalizou suas propostas. Não é possível enviar mais.',
+                'ok'
+            );
         } else {
-            openBtn.textContent = '+ Enviar as 3 camisas';
             setStatus();
         }
 
@@ -649,8 +709,6 @@ async function verificarEstadoEnvios() {
         console.error(error);
 
         enviosAbertos = false;
-        openBtn.textContent = 'Não foi possível verificar os envios';
-
         setStatus(
             'Não foi possível verificar se os envios estão abertos. Tente novamente.',
             'err'
@@ -687,6 +745,42 @@ async function verificarEstadoVotacao() {
         avisoVotacao.hidden = true;
     }
 }
+
+// ---------- Lightbox de imagens ----------
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightboxImg');
+const lightboxClose = document.getElementById('lightboxClose');
+
+function abrirLightbox(src) {
+    lightboxImg.src = src;
+    lightbox.hidden = false;
+}
+
+function fecharLightbox() {
+    lightbox.hidden = true;
+    lightboxImg.removeAttribute('src');
+}
+
+if (lightboxClose) {
+    lightboxClose.addEventListener('click', fecharLightbox);
+}
+
+if (lightbox) {
+    lightbox.addEventListener('click', event => {
+        if (event.target === lightbox) fecharLightbox();
+    });
+}
+
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !lightbox.hidden) fecharLightbox();
+});
+
+// Delegação de clique nas imagens
+optionsList.addEventListener('click', event => {
+    if (event.target.classList.contains('shirt-image')) {
+        abrirLightbox(event.target.src);
+    }
+});
 
 Promise.all([
     verificarEstadoEnvios(),

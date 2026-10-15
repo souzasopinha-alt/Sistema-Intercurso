@@ -98,9 +98,8 @@ try {
     }
 
     /*
-     * O bloqueio e a consulta da proposta existente são feitos
-     * dentro da transação. A restrição UNIQUE no banco impede
-     * duplicações mesmo em requisições simultâneas.
+     * O bloqueio e as consultas de estado são feitos dentro da transação.
+     * Isso evita que duas requisições simultâneas passem pelo mesmo check.
      */
     $pdo->beginTransaction();
 
@@ -116,14 +115,15 @@ try {
         resposta(false, 'O período de envio de camisas foi encerrado.', 403);
     }
 
+    // Bloqueia se o aluno já finalizou os envios.
     $stmt = $pdo->prepare(
-        'SELECT id FROM opcoes WHERE usuario_id = ? LIMIT 1'
+        'SELECT envios_finalizados FROM usuarios WHERE id = ? LIMIT 1'
     );
     $stmt->execute([$usuarioId]);
 
-    if ($stmt->fetchColumn()) {
+    if ((int) $stmt->fetchColumn() === 1) {
         $pdo->rollBack();
-        resposta(false, 'Você já enviou uma proposta de camisas.', 409);
+        resposta(false, 'Você já finalizou suas propostas. Não é possível enviar mais.', 403);
     }
 
     $baseDir = getenv('CAMISAS_UPLOAD_DIR')
@@ -187,10 +187,6 @@ try {
         if (is_file($arquivoSalvo)) {
             unlink($arquivoSalvo);
         }
-    }
-
-    if (($e->errorInfo[1] ?? null) == 1062) {
-        resposta(false, 'Você já enviou uma proposta de camisas.', 409);
     }
 
     error_log('upload_camisas.php: ' . $e->getMessage());
