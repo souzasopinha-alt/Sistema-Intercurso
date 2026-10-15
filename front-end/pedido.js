@@ -181,7 +181,7 @@ try {
 
     sessionStorage.setItem("pedido_id", resultado.pedido_id);
 
-    window.location.href = "pagamento.html";
+    window.location.href = "pagamento.html?pedido_id=" + encodeURIComponent(resultado.pedido_id);
 
 } catch (erro) {
 

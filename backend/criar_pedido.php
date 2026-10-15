@@ -75,6 +75,8 @@ try {
         $nomeCamisa
     ]);
 
+    $novoPedidoId = (int) $pdo->lastInsertId();
+
     // Remove pedidos recusados anteriores deste usuário (com comprovantes e arquivos).
     $stmtRecusados = $pdo->prepare("
         SELECT id FROM pedidos
@@ -114,7 +116,7 @@ try {
     echo json_encode([
         'sucesso' => true,
         'mensagem' => 'Pedido criado com sucesso.',
-        'pedido_id' => $pdo->lastInsertId()
+        'pedido_id' => $novoPedidoId
     ]);
 
 } catch (PDOException $e) {

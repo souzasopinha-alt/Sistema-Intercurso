@@ -145,17 +145,75 @@
       const receiptIntro = document.querySelector('#receipt-intro');
       const submitLabel = document.querySelector('#submit-label');
       const paymentOptions = document.querySelectorAll('input[name="metodo_pagamento"]');
+      const campoPedidoId = document.querySelector('#pedido-id');
+      const submitButton = document.querySelector('#submit-button');
       const maxSize = 10 * 1024 * 1024;
-      const pedidoId = sessionStorage.getItem('pedido_id');
 
-      if (pedidoId) {
-        document.querySelector('#pedido-id').value = pedidoId;
+      const params = new URLSearchParams(window.location.search);
+      const pedidoIdDaUrl = params.get('pedido_id');
+      const pedidoIdValido = pedidoIdDaUrl && pedidoIdDaUrl !== '0' ? pedidoIdDaUrl : null;
+      let pedidoId = pedidoIdValido || sessionStorage.getItem('pedido_id');
+
+      if (pedidoId === '0') {
+        pedidoId = null;
       }
 
-      if (!pedidoId) {
-        error.textContent = 'Pedido não encontrado. Volte e faça o pedido novamente.';
-        form.querySelector('button[type="submit"]').disabled = true;
+      function aplicarPedidoId(id) {
+        pedidoId = String(id);
+        campoPedidoId.value = pedidoId;
+        sessionStorage.setItem('pedido_id', pedidoId);
+
+        if (!params.get('pedido_id')) {
+          const novaUrl = window.location.pathname + '?pedido_id=' + encodeURIComponent(pedidoId);
+          window.history.replaceState(null, '', novaUrl);
+        }
+
+        error.textContent = '';
+        submitButton.disabled = false;
       }
+
+      function bloquearPorFaltaDePedido() {
+        error.textContent = 'Nenhum pedido pendente encontrado. Volte e faça o pedido novamente.';
+        submitButton.disabled = true;
+      }
+
+      // Busca o último pedido PENDENTE do usuário quando a sessionStorage está vazia.
+      async function recuperarPedidoPendente() {
+        try {
+          const resposta = await fetch('../backend/pedidos.php?meus=1&status=PENDENTE', {
+            credentials: 'include'
+          });
+
+          if (!resposta.ok) {
+            return null;
+          }
+
+          const lista = await resposta.json();
+
+          if (!Array.isArray(lista) || lista.length === 0) {
+            return null;
+          }
+
+          return lista[0];
+        } catch {
+          return null;
+        }
+      }
+
+      (async () => {
+        if (pedidoId) {
+          aplicarPedidoId(pedidoId);
+          return;
+        }
+
+        const pendente = await recuperarPedidoPendente();
+
+        if (pendente && pendente.id) {
+          aplicarPedidoId(pendente.id);
+        } else {
+          bloquearPorFaltaDePedido();
+        }
+      })();
 
       const formatSize = bytes => bytes < 1024 * 1024
         ? `${Math.max(1, Math.round(bytes / 1024))} KB`
@@ -263,7 +321,6 @@
           return;
         }
 
-        const submitButton = document.querySelector('#submit-button');
         const originalLabel = submitLabel.textContent;
 
         submitButton.disabled = true;
