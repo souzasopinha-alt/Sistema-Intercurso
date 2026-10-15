@@ -3,3 +3,4 @@ backend/pagamentos/uploads/*
 *.bak
 *.bak2
 .env
+*.bak*
