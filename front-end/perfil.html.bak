@@ -1,0 +1,78 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu perfil - Intercursos</title>
+    <link rel="stylesheet" href="perfil.css">
+    <script src="perfil.js" defer></script>
+</head>
+<body>
+    <main class="pagina">
+        <header class="cabecalho">
+            <div>
+                <span class="identificador">INTERCURSOS</span>
+                <h1>Meu perfil</h1>
+                <p>Consulte seus dados e acompanhe seu pedido de fardamento.</p>
+            </div>
+
+            <button id="btnSair" class="botao-secundario" type="button">
+                Sair
+            </button>
+        </header>
+
+        <p id="mensagem" class="mensagem" role="status" aria-live="polite">
+            Carregando seu perfil...
+        </p>
+
+        <section class="cartao perfil-cartao" aria-labelledby="tituloPerfil">
+            <div class="titulo-secao">
+                <span class="icone">01</span>
+                <div>
+                    <h2 id="tituloPerfil">Dados pessoais</h2>
+                    <p>Informações da sua conta</p>
+                </div>
+            </div>
+
+            <div class="dados-grid">
+                <div class="dado">
+                    <span>Nome completo</span>
+                    <strong id="nome">—</strong>
+                </div>
+
+                <div class="dado">
+                    <span>E-mail</span>
+                    <strong id="email">—</strong>
+                </div>
+
+                <div class="dado">
+                    <span>Curso</span>
+                    <strong id="curso">—</strong>
+                </div>
+
+                <div class="dado">
+                    <span>Série</span>
+                    <strong id="serie">—</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="pedidos-secao" aria-labelledby="tituloPedidos">
+            <div class="titulo-secao">
+                <span class="icone">02</span>
+                <div>
+                    <h2 id="tituloPedidos">Meu pedido</h2>
+                    <p>Informações e situação do seu pedido de fardamento.</p>
+                </div>
+            </div>
+
+            <div id="listaPedidos" class="lista-pedidos"></div>
+        </section>
+
+        <footer>
+            Sistema Intercursos
+        </footer>
+    </main>
+</body>
+</html>

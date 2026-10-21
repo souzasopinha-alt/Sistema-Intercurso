@@ -61,12 +61,15 @@ try {
     $stmt->execute([$usuarioId]);
 
     $pedidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $ultimoPedido = $pedidos[0] ?? null;
+    $podeCriarPedido = !$ultimoPedido || $ultimoPedido['status_pagamento'] === 'APROVADO';
 
     echo json_encode([
         'sucesso' => true,
         'usuario' => $usuario,
         'pedidos' => $pedidos,
-        'pedidos_abertos' => $pedidosAbertos
+        'pedidos_abertos' => $pedidosAbertos,
+        'pode_criar_pedido' => $podeCriarPedido
     ], JSON_UNESCAPED_UNICODE);
 
 } catch (PDOException $e) {

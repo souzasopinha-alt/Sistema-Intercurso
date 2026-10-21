@@ -39,12 +39,9 @@ try {
 
     if ($method === 'GET') {
         $stmt = $pdo->query(
-            'SELECT o.id, o.nome, o.imagem1, o.imagem2, o.imagem3,
-                    COUNT(v.id) AS total_votos
+            'SELECT o.id, o.nome, o.imagem1, o.imagem2, o.imagem3
              FROM opcoes o
-             LEFT JOIN votos_realizados v ON v.opcao_id = o.id
              WHERE o.aprovado = 1
-             GROUP BY o.id, o.nome, o.imagem1, o.imagem2, o.imagem3
              ORDER BY o.id ASC'
         );
 
@@ -59,7 +56,6 @@ try {
 
         foreach ($opcoes as $i => &$opcao) {
             $opcao['numero'] = $i + 1;
-            $opcao['total_votos'] = (int) $opcao['total_votos'];
         }
         unset($opcao);
 

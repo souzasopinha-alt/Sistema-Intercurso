@@ -23,6 +23,7 @@ const erroNumero = document.getElementById("erroNumero");
 const erroTamanho = document.getElementById("erroTamanho");
 const erroNome = document.getElementById("erroNome");
 const mensagemSucesso = document.getElementById("mensagemSucesso");
+const pedidoParaSubstituir = new URLSearchParams(window.location.search).get("substituir");
 
 const imagensPorCurso = {
     Informatica: "img/azul.jpeg",
@@ -164,6 +165,9 @@ dados.append("modelo", modelo.value);
 dados.append("numero", numero.value);
 dados.append("tamanho", tamanho.value);
 dados.append("nome_camisa", nome);
+if (pedidoParaSubstituir) {
+    dados.append("substituir_pedido_id", pedidoParaSubstituir);
+}
 
 try {
 

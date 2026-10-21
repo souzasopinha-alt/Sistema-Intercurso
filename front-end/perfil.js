@@ -66,7 +66,7 @@ function criarDadoPedido(titulo, valor) {
     return dado;
 }
 
-function criarCartaoPedido(pedido, indice) {
+function criarCartaoPedido(pedido, indice, podeSubstituir) {
     const cartao = criarElemento("article", "pedido");
     const cabecalho = criarElemento("div", "pedido-cabecalho");
     const identificacao = criarElemento("div", "");
@@ -100,7 +100,7 @@ function criarCartaoPedido(pedido, indice) {
 
     cartao.append(cabecalho, dados);
 
-    if (status === "RECUSADO") {
+    if (status === "RECUSADO" && podeSubstituir) {
         const aviso = criarElemento(
             "p",
             "pedido-aviso-recusado",
@@ -116,7 +116,7 @@ function criarCartaoPedido(pedido, indice) {
         );
         botao.type = "button";
         botao.addEventListener("click", () => {
-            window.location.href = "pedido.html";
+            window.location.href = `pedido.html?substituir=${encodeURIComponent(pedido.id)}`;
         });
 
         acoes.appendChild(botao);
@@ -135,7 +135,7 @@ function criarBotaoNovoPedido(texto) {
     return botao;
 }
 
-function mostrarPedidos(pedidos, pedidosAbertos) {
+function mostrarPedidos(pedidos, pedidosAbertos, podeCriarPedido) {
     listaPedidos.replaceChildren();
 
     const lista = Array.isArray(pedidos) ? pedidos : [];
@@ -152,7 +152,7 @@ function mostrarPedidos(pedidos, pedidosAbertos) {
             )
         );
 
-        if (pedidosAbertos) {
+        if (pedidosAbertos && podeCriarPedido) {
             vazio.appendChild(criarBotaoNovoPedido("Fazer um pedido"));
         }
 
@@ -161,10 +161,11 @@ function mostrarPedidos(pedidos, pedidosAbertos) {
     }
 
     lista.forEach((pedido, indice) => {
-        listaPedidos.appendChild(criarCartaoPedido(pedido, indice + 1));
+        const podeSubstituir = pedidosAbertos && indice === 0;
+        listaPedidos.appendChild(criarCartaoPedido(pedido, indice + 1, podeSubstituir));
     });
 
-    if (pedidosAbertos) {
+    if (pedidosAbertos && podeCriarPedido) {
         const barra = criarElemento("div", "pedidos-acoes");
         barra.appendChild(criarBotaoNovoPedido("+ Fazer mais um pedido"));
         listaPedidos.appendChild(barra);
@@ -204,7 +205,11 @@ async function carregarPerfil() {
         campoCurso.textContent = usuario.curso || "Não informado";
         campoSerie.textContent = usuario.serie || "Não informada";
 
-        mostrarPedidos(resultado.pedidos, resultado.pedidos_abertos === true);
+        mostrarPedidos(
+            resultado.pedidos,
+            resultado.pedidos_abertos === true,
+            resultado.pode_criar_pedido === true
+        );
 
         mensagem.textContent = "";
         mensagem.className = "mensagem";
