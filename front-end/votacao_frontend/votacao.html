@@ -94,7 +94,7 @@
 
                 lista.innerHTML = opcoes.map(opcao => `
                     <article class="card">
-                        <h2>Opção ${Number(opcao.numero)}</h2>
+                        <h2>${esc(opcao.rotulo || `Opção ${Number(opcao.numero)}`)}</h2>
 
                         <div class="imgs">
                             <img src="${esc(img(opcao.imagem1))}"

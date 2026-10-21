@@ -563,13 +563,58 @@ select {
 }
 
 .votos-table {
-  min-width: 520px;
+  min-width: 700px;
 }
 
-.votos-table tbody td:last-child {
+.votos-table tbody td:nth-child(2) {
   font-size: 18px;
   font-weight: 850;
   color: var(--preto);
+}
+
+.opcao-admin-form {
+  display: grid;
+  gap: 12px;
+  max-width: 900px;
+  margin: 0 0 20px;
+  padding: 20px;
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .94);
+}
+
+.opcao-admin-form h2 { font-size: 18px; }
+.opcao-admin-form p { color: var(--cinza); }
+.opcao-admin-form > input {
+  width: 100%;
+  max-width: 460px;
+  padding: 10px 12px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+}
+
+.opcao-admin-arquivos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.opcao-admin-arquivos label { display: grid; gap: 7px; font-weight: 700; }
+.opcao-admin-arquivos input { max-width: 100%; font-size: 13px; }
+.opcao-admin-form #resultadoOpcaoAdmin { min-height: 1.2em; }
+
+.votos-imagem-cell { display: flex; align-items: center; gap: 12px; }
+.voto-thumb {
+  width: 74px;
+  height: 58px;
+  object-fit: contain;
+  background: #f4f4f4;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+}
+
+@media (max-width: 650px) {
+  .opcao-admin-arquivos { grid-template-columns: 1fr; }
 }
 
 /* ========================= PAYMENT / REPORT ========================= */

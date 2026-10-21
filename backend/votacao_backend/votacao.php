@@ -39,10 +39,11 @@ try {
 
     if ($method === 'GET') {
         $stmt = $pdo->query(
-            'SELECT o.id, o.nome, o.imagem1, o.imagem2, o.imagem3
+            "SELECT o.id, o.nome, u.tipo AS tipo_criador, o.imagem1, o.imagem2, o.imagem3
              FROM opcoes o
+             JOIN usuarios u ON u.id = o.usuario_id
              WHERE o.aprovado = 1
-             ORDER BY o.id ASC'
+             ORDER BY o.id ASC"
         );
 
         $opcoes = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -56,6 +57,10 @@ try {
 
         foreach ($opcoes as $i => &$opcao) {
             $opcao['numero'] = $i + 1;
+            $opcao['rotulo'] = strtoupper((string) $opcao['tipo_criador']) === 'ADMIN'
+                ? $opcao['nome']
+                : null;
+            unset($opcao['tipo_criador'], $opcao['nome']);
         }
         unset($opcao);
 

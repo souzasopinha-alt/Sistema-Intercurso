@@ -54,11 +54,13 @@ try {
         o.imagem1,
         o.imagem2,
         o.imagem3,
+        u.tipo AS tipo_criador,
         COUNT(v.id) AS total_votos
      FROM opcoes o
+     JOIN usuarios u ON u.id = o.usuario_id
      LEFT JOIN votos_realizados v ON v.opcao_id = o.id
      WHERE o.aprovado = 1
-     GROUP BY o.id, o.nome, o.imagem1, o.imagem2, o.imagem3
+     GROUP BY o.id, o.usuario_id, u.tipo, o.nome, o.imagem1, o.imagem2, o.imagem3
      ORDER BY o.id ASC'
 );
 
@@ -71,6 +73,8 @@ try {
 
             $resultado[] = [
         'id' => (int) $opcao['id'],
+        'usuario_id' => (int) $opcao['usuario_id'],
+        'criado_por_admin' => strtoupper((string) $opcao['tipo_criador']) === 'ADMIN',
         'numero' => $numero,
         'nome' => $opcao['nome'] ?: ('Opção ' . $numero),
         'imagem1' => $opcao['imagem1'],

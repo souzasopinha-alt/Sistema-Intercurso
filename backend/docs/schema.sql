@@ -68,7 +68,6 @@ CREATE TABLE `opcoes` (
   `aprovado` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_opcoes_usuario` (`usuario_id`),
   KEY `idx_opcoes_aprovado` (`aprovado`),
   KEY `idx_opcoes_usuario` (`usuario_id`),
   CONSTRAINT `fk_opcoes_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON UPDATE CASCADE
@@ -102,6 +101,7 @@ CREATE TABLE `usuarios` (
   `senha` varchar(255) NOT NULL,
   `tipo` enum('ALUNO','LIDER','ADMIN') NOT NULL,
   `email_autorizado_id` int(11) NOT NULL,
+  `envios_finalizados` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`),
   KEY `email_autorizado_id` (`email_autorizado_id`),

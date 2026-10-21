@@ -25,7 +25,9 @@ const ENDPOINTS = {
     iniciarPedidos:  '../../backend/admin_backend/iniciar_pedidos.php',
     encerrarPedidos: '../../backend/admin_backend/encerrar_pedidos.php',
     reabrirPedidos:  '../../backend/admin_backend/reabrir_pedidos.php',
-    excluirPedido: '../../backend/admin_backend/excluir_pedido.php'
+    excluirPedido: '../../backend/admin_backend/excluir_pedido.php',
+    adicionarOpcaoVotacao: '../../backend/admin_backend/adicionar_opcao_votacao.php',
+    excluirOpcaoVotacao: '../../backend/admin_backend/excluir_opcao_votacao.php'
 };
 
 let pedidosCache = [];
@@ -633,31 +635,54 @@ if (formImportarAlunos) {
     resultado.textContent = 'Importando alunos...';
 
     try {
-      const resposta = await fetch('../../backend/importar_alunos.php', {
-        method: 'POST',
-        body: formulario,
-        credentials: 'include'
-      });
+  const resposta = await fetch('../../backend/importar_alunos.php', {
+    method: 'POST',
+    body: formulario,
+    credentials: 'same-origin'
+  });
 
-      const dados = await resposta.json();
+  // Lê primeiro como texto para identificar erros HTML do servidor.
+  const texto = await resposta.text();
 
-      if (!resposta.ok || !dados.sucesso) {
-        throw new Error(dados.erro || 'Não foi possível importar o arquivo.');
-      }
+  let dados;
 
-      resultado.textContent =
-        `Importação concluída! Importados: ${dados.importados}; ` +
-        `duplicados: ${dados.duplicados}; inválidos: ${dados.invalidos}.`;
+  try {
+    dados = JSON.parse(texto);
+  } catch {
+    console.error(
+      'Resposta não JSON:',
+      resposta.status,
+      texto
+    );
 
-      inputArquivo.value = '';
+    throw new Error(
+      `O servidor retornou uma resposta inválida (HTTP ${resposta.status}).`
+    );
+  }
 
-      await carregarUsuarios();
-    } catch (erro) {
-      resultado.textContent =
-        erro.message || 'Erro ao importar os alunos.';
-    } finally {
-      botao.disabled = false;
-    }
+  if (!resposta.ok || !dados.sucesso) {
+    throw new Error(
+      dados.erro || `Falha na importação (HTTP ${resposta.status}).`
+    );
+  }
+
+  resultado.textContent =
+    `Importação concluída! Importados: ${dados.importados}; ` +
+    `duplicados: ${dados.duplicados}; inválidos: ${dados.invalidos}.`;
+
+  inputArquivo.value = '';
+
+  await carregarUsuarios();
+
+} catch (erro) {
+  console.error('Erro ao importar alunos:', erro);
+
+  resultado.textContent =
+    erro.message || 'Erro ao importar os alunos.';
+} finally {
+  botao.disabled = false;
+}
+
   });
 }
 
@@ -671,7 +696,7 @@ function urlImagem(path) {
 async function carregarVotos() {
   const tbody = document.getElementById('tabelaVotos');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="3" class="table__empty">Carregando votos...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="4" class="table__empty">Carregando votos...</td></tr>';
 
   try {
     const resp = await fetch(ENDPOINTS.votos, { credentials: 'include', cache: 'no-store' });
@@ -680,7 +705,7 @@ async function carregarVotos() {
     if (!resp.ok || !dados.success) throw new Error(dados.message || 'Não foi possível carregar os votos.');
 
     if (!Array.isArray(dados.opcoes) || !dados.opcoes.length) {
-      tbody.innerHTML = '<tr><td colspan="3" class="table__empty">Nenhuma opção encontrada.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" class="table__empty">Nenhuma opção encontrada.</td></tr>';
       return;
     }
 
@@ -689,8 +714,14 @@ async function carregarVotos() {
         <td><strong>${esc(v.nome || `Opção ${v.numero}`)}</strong></td>
         <td><strong>${Number(v.total_votos || 0)}</strong></td>
         <td>
-          <button type="button" class="btn-ver-camisas" data-index="${i}">Ver camisas</button>
+          <div class="votos-imagem-cell">
+            <img class="voto-thumb" src="${esc(urlImagem(v.imagem1))}" alt="Imagem da opção ${Number(v.numero)}">
+            <button type="button" class="btn-ver-camisas" data-index="${i}">Ver imagens</button>
+          </div>
         </td>
+        <td>${v.criado_por_admin
+          ? `<button type="button" class="btn btn--danger btn--small" data-excluir-opcao="${Number(v.id)}" data-nome-opcao="${esc(v.nome || `Opção ${v.numero}`)}">Excluir</button>`
+          : '<span class="action-muted">—</span>'}</td>
       </tr>
     `).join('');
 
@@ -700,13 +731,65 @@ async function carregarVotos() {
         abrirModalCamisas(item);
       });
     });
+
+    tbody.querySelectorAll('[data-excluir-opcao]').forEach(btn => {
+      btn.addEventListener('click', () => excluirOpcaoVotacao(
+        Number(btn.dataset.excluirOpcao), btn.dataset.nomeOpcao
+      ));
+    });
   } catch (e) {
     console.error(e);
     tbody.innerHTML =
-      '<tr><td colspan="3" class="table__empty">' +
+      '<tr><td colspan="4" class="table__empty">' +
       esc(e.message || 'Não foi possível carregar os votos.') +
       '</td></tr>';
   }
+}
+
+async function excluirOpcaoVotacao(id, nome) {
+  if (!confirm(`Excluir a opção "${nome}"? Os votos dela também serão removidos.`)) return;
+  try {
+    const resp = await fetch(ENDPOINTS.excluirOpcaoVotacao, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    const dados = await resp.json();
+    if (!resp.ok || !dados.success) throw new Error(dados.message || 'Não foi possível excluir a opção.');
+    mostrarToast(dados.message || 'Opção excluída.');
+    await carregarVotos();
+  } catch (erro) {
+    mostrarToast(erro.message || 'Não foi possível excluir a opção.');
+  }
+}
+
+function configurarFormularioOpcaoAdmin() {
+  const form = document.getElementById('formOpcaoAdmin');
+  if (!form) return;
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const botao = document.getElementById('btnAdicionarOpcaoAdmin');
+    const resultado = document.getElementById('resultadoOpcaoAdmin');
+    botao.disabled = true;
+    resultado.textContent = 'Enviando imagens...';
+    try {
+      const resp = await fetch(ENDPOINTS.adicionarOpcaoVotacao, {
+        method: 'POST',
+        credentials: 'include',
+        body: new FormData(form)
+      });
+      const dados = await resp.json();
+      if (!resp.ok || !dados.success) throw new Error(dados.message || 'Não foi possível adicionar a opção.');
+      resultado.textContent = dados.message || 'Opção adicionada.';
+      form.reset();
+      await carregarVotos();
+    } catch (erro) {
+      resultado.textContent = erro.message || 'Não foi possível adicionar a opção.';
+    } finally {
+      botao.disabled = false;
+    }
+  });
 }
 
 const modalCamisas = document.getElementById('modalCamisas');
@@ -796,6 +879,7 @@ function mostrarToast(msg) {
 }
 
 function configurar() {
+  configurarFormularioOpcaoAdmin();
   document.querySelectorAll('.sidebar__link').forEach(link => {
     link.addEventListener('click', async () => {
       document.querySelectorAll('.sidebar__link').forEach(x => x.classList.remove('is-active'));
@@ -841,6 +925,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   await protegerPainel();
   await atualizarPedidos();
   renderRelatorio();
+  window.setInterval(() => {
+    const painelVotacao = document.getElementById('view-votacao');
+    if (painelVotacao?.classList.contains('is-active')) carregarVotos();
+  }, 10000);
 });
 
 /* ---------- Estado global das ações (admin) ---------- */

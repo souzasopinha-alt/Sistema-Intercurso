@@ -1,8 +1,13 @@
 FROM php:8.3-apache
 
-RUN docker-php-ext-install pdo_mysql mysqli \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libonig-dev libonig5 \
+    && docker-php-ext-install pdo_mysql mysqli mbstring \
     && a2enmod rewrite headers \
-    && echo 'DirectoryIndex front-end/login.html index.php index.html' >> /etc/apache2/apache2.conf
+    && echo 'DirectoryIndex front-end/login.html index.php index.html' >> /etc/apache2/apache2.conf \
+    && printf 'upload_max_filesize=10M\npost_max_size=35M\n' > /usr/local/etc/php/conf.d/uploads.ini \
+    && apt-get purge -y --auto-remove libonig-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
 COPY . /var/www/html

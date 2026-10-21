@@ -243,6 +243,20 @@
         <h1>Votação</h1>
         <p>Quantidade de votos recebidos por cada opção de camisa.</p>
       </div>
+
+      <form class="opcao-admin-form" id="formOpcaoAdmin">
+        <h2>Adicionar opção de votação</h2>
+        <p>Envie três imagens da opção. Ela ficará disponível na próxima votação.</p>
+        <label for="nomeOpcaoAdmin">Nome da opção</label>
+        <input id="nomeOpcaoAdmin" name="nome" type="text" maxlength="100" required placeholder="Ex.: Camisa edição 2026">
+        <div class="opcao-admin-arquivos">
+          <label>Imagem 1<input name="imagem1" type="file" accept="image/jpeg,image/png,image/webp" required></label>
+          <label>Imagem 2<input name="imagem2" type="file" accept="image/jpeg,image/png,image/webp" required></label>
+          <label>Imagem 3<input name="imagem3" type="file" accept="image/jpeg,image/png,image/webp" required></label>
+        </div>
+        <button class="btn btn--primary" id="btnAdicionarOpcaoAdmin" type="submit">Adicionar imagens</button>
+        <p id="resultadoOpcaoAdmin" role="status" aria-live="polite"></p>
+      </form>
       
 <div class="votos-toolbar">
   <button class="btn btn--ghost votos-refresh" id="btnAtualizarVotos" type="button">
@@ -270,9 +284,9 @@
 
       <div class="table-wrap">
         <table class="table votos-table">
-  <thead><tr><th>Opção</th><th>Quantidade de votos</th><th>Camisas</th></tr></thead>
+  <thead><tr><th>Opção</th><th>Quantidade de votos</th><th>Imagem</th><th>Ação</th></tr></thead>
   <tbody id="tabelaVotos">
-    <tr><td colspan="3" class="table__empty">Clique em Votação para carregar os votos.</td></tr>
+    <tr><td colspan="4" class="table__empty">Clique em Votação para carregar os votos.</td></tr>
   </tbody>
 </table>
       </div>

@@ -147,20 +147,30 @@ if (!$usuario) {
     if (strtoupper((string) $usuario['tipo']) === 'ALUNO') {
         $stmt = $pdo->query(
             "SELECT valor FROM configuracoes
-             WHERE chave = 'pedidos_abertos' LIMIT 1"
+             WHERE chave = 'votacao_aberta' LIMIT 1"
         );
-        $pedidosAbertos = $stmt->fetchColumn() === '1';
+        $votacaoAberta = $stmt->fetchColumn() === '1';
 
-                        if ($pedidosAbertos) {
-            $stmt = $pdo->prepare(
-                "SELECT COUNT(*) FROM pedidos WHERE usuario_id = ?"
+        if ($votacaoAberta) {
+            $proximoPasso = 'votacao_frontend/votacao.html';
+        } else {
+            $stmt = $pdo->query(
+                "SELECT valor FROM configuracoes
+                 WHERE chave = 'pedidos_abertos' LIMIT 1"
             );
-            $stmt->execute([$usuario['id']]);
-            $totalPedidos = (int) $stmt->fetchColumn();
+            $pedidosAbertos = $stmt->fetchColumn() === '1';
 
-            $proximoPasso = $totalPedidos === 0
-                ? 'pedido.html'
-                : 'perfil.html';
+            if ($pedidosAbertos) {
+                $stmt = $pdo->prepare(
+                    "SELECT COUNT(*) FROM pedidos WHERE usuario_id = ?"
+                );
+                $stmt->execute([$usuario['id']]);
+                $totalPedidos = (int) $stmt->fetchColumn();
+
+                $proximoPasso = $totalPedidos === 0
+                    ? 'pedido.html'
+                    : 'perfil.html';
+            }
         }
     }
 
