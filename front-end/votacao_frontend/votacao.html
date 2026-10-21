@@ -9,9 +9,14 @@
 <body>
     <main class="page">
         <header>
-            <h1>Votação das camisas</h1>
-            <p>Escolha uma opção. Cada usuário pode votar uma única vez.</p>
-            <a class="back-link" href="../uploud_frontend/uploud_camisas.html">← Voltar para envio</a>
+            <div class="votacao-topo">
+                <div>
+                    <h1>Votação das camisas</h1>
+                    <p>Escolha uma opção. Cada usuário pode votar uma única vez.</p>
+                    <a class="back-link" href="../uploud_frontend/uploud_camisas.html">← Voltar para envio</a>
+                </div>
+                <button class="logout-button" id="btnSairVotacao" type="button">Sair</button>
+            </div>
         </header>
 
         <div id="status" class="status" role="status" aria-live="polite"></div>
@@ -31,6 +36,29 @@
         const statusEl = document.getElementById('status');
 
         const API_VOTACAO = '../../backend/votacao_backend/votacao.php';
+
+        document.getElementById('btnSairVotacao').addEventListener('click', async event => {
+            const botao = event.currentTarget;
+            botao.disabled = true;
+            botao.textContent = 'Saindo...';
+
+            try {
+                const resposta = await fetch('../../backend/logout.php', {
+                    method: 'POST',
+                    credentials: 'include',
+                    cache: 'no-store'
+                });
+                const dados = await resposta.json();
+                if (!resposta.ok || !dados.sucesso) {
+                    throw new Error(dados.erro || 'Não foi possível encerrar a sessão.');
+                }
+                window.location.replace('../login.html');
+            } catch (erro) {
+                status(erro.message || 'Não foi possível sair. Tente novamente.', 'err');
+                botao.disabled = false;
+                botao.textContent = 'Sair';
+            }
+        });
 
         const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
             '&': '&amp;',
