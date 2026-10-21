@@ -73,3 +73,22 @@
     transform: scale(1.02);
     box-shadow: 0 8px 20px rgba(0, 0, 0, .15);
 }
+
+/* Miniaturas compactas; o clique continua abrindo a imagem no lightbox. */
+.imgs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: center;
+}
+
+.imgs img {
+    width: 100%;
+    height: clamp(110px, 16vw, 180px);
+    aspect-ratio: auto;
+    object-fit: contain;
+}
+
+@media (max-width: 480px) {
+    .imgs img {
+        height: 110px;
+    }
+}
