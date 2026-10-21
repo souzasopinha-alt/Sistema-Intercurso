@@ -1,0 +1,10 @@
+.git
+.agents
+.aws
+.codex
+**/.env
+**/*.bak
+**/*.bak*
+**/uploads/**
+!backend/pagamentos/uploads/.gitkeep
+README.md
