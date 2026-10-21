@@ -270,9 +270,25 @@
         submitLabel.textContent = 'Enviando...';
 
         try {
+          const arquivo = isCashPayment() ? null : input.files[0];
+          let comprovante = null;
+          if (arquivo) {
+            const data = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(String(reader.result).split(',')[1]);
+              reader.onerror = () => reject(new Error('Não foi possível ler o comprovante.'));
+              reader.readAsDataURL(arquivo);
+            });
+            comprovante = { name: arquivo.name, data };
+          }
           const resposta = await fetch(form.action, {
             method: 'POST',
-            body: new FormData(form),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              pedido_id: pedidoId,
+              metodo_pagamento: selectedPaymentMethod(),
+              comprovante
+            }),
             credentials: 'include'
           });
 

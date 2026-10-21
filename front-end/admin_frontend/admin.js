@@ -628,16 +628,26 @@ if (formImportarAlunos) {
       return;
     }
 
-    const formulario = new FormData();
-    formulario.append('arquivo', inputArquivo.files[0]);
+    const arquivo = inputArquivo.files[0];
+    if (arquivo.size > 5 * 1024 * 1024) {
+      resultado.textContent = 'O arquivo não pode ultrapassar 5 MB.';
+      return;
+    }
 
     botao.disabled = true;
     resultado.textContent = 'Importando alunos...';
 
     try {
+  const conteudo = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1]);
+    reader.onerror = () => reject(new Error('Não foi possível ler o CSV.'));
+    reader.readAsDataURL(arquivo);
+  });
   const resposta = await fetch('../../backend/importar_alunos.php', {
     method: 'POST',
-    body: formulario,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nome: arquivo.name, conteudo }),
     credentials: 'same-origin'
   });
 
@@ -777,7 +787,30 @@ function configurarFormularioOpcaoAdmin() {
       const resp = await fetch(ENDPOINTS.adicionarOpcaoVotacao, {
         method: 'POST',
         credentials: 'include',
-        body: new FormData(form)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(await (async () => {
+          const arquivos = [...form.querySelectorAll('input[type="file"]')];
+          const total = arquivos.reduce((soma, campo) => soma + (campo.files[0]?.size || 0), 0);
+          if (total > 12 * 1024 * 1024) {
+            throw new Error('O tamanho total das três imagens deve ser de até 12 MB.');
+          }
+          const codificados = await Promise.all(arquivos.map(async campo => {
+            const arquivo = campo.files[0];
+            if (!arquivo) throw new Error('Selecione as três imagens da opção.');
+            if (arquivo.size > 10 * 1024 * 1024) throw new Error('Cada imagem deve ter até 10 MB.');
+            const data = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(String(reader.result).split(',')[1]);
+              reader.onerror = () => reject(new Error('Não foi possível ler uma das imagens.'));
+              reader.readAsDataURL(arquivo);
+            });
+            return { name: arquivo.name, data };
+          }));
+          return {
+            nome: form.elements.nome.value,
+            imagem1: codificados[0], imagem2: codificados[1], imagem3: codificados[2]
+          };
+        })())
       });
       const dados = await resp.json();
       if (!resp.ok || !dados.success) throw new Error(dados.message || 'Não foi possível adicionar a opção.');

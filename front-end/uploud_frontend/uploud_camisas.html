@@ -506,17 +506,26 @@ function imageUrl(path) {
 
 // Envia as três imagens ao PHP.
 async function enviarParaServidor() {
-    const formData = new FormData();
+    const arquivosBase64 = await Promise.all(selectedFiles.map(async arquivo => ({
+        name: arquivo.name,
+        data: await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result).split(',')[1]);
+            reader.onerror = () => reject(new Error('Não foi possível ler uma das imagens.'));
+            reader.readAsDataURL(arquivo);
+        })
+    })));
 
-    formData.append('imagem1', selectedFiles[0], selectedFiles[0].name);
-    formData.append('imagem2', selectedFiles[1], selectedFiles[1].name);
-    formData.append('imagem3', selectedFiles[2], selectedFiles[2].name);
+    const payload = Object.fromEntries(
+        arquivosBase64.map((arquivo, indice) => [`imagem${indice + 1}`, arquivo])
+    );
 
     const response = await fetch(
         '../../backend/uploud_backend/upload_camisas.php',
         {
             method: 'POST',
-            body: formData,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
             credentials: 'include'
         }
     );

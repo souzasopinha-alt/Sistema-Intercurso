@@ -54,6 +54,11 @@ $arquivosSalvos = [];
 $destinoDir = null;
 
 try {
+    $payload = json_decode(file_get_contents('php://input'), true);
+    if (!is_array($payload)) {
+        resposta(false, 'Conteúdo JSON inválido.', 400);
+    }
+
     // Confere o usuário.
     $stmt = $pdo->prepare(
         'SELECT nome FROM usuarios WHERE id = ? LIMIT 1'
@@ -67,32 +72,23 @@ try {
 
     // Valida as três imagens antes de salvá-las.
     foreach ($campos as $campo) {
-        if (
-            !isset($_FILES[$campo]) ||
-            $_FILES[$campo]['error'] !== UPLOAD_ERR_OK
-        ) {
+        $conteudo = $payload[$campo]['data'] ?? '';
+        $bytes = is_string($conteudo) ? base64_decode($conteudo, true) : false;
+        if ($bytes === false) {
             resposta(false, "A imagem {$campo} não foi recebida corretamente.", 400);
         }
-
-        $tmp = $_FILES[$campo]['tmp_name'];
-        $tamanho = (int) $_FILES[$campo]['size'];
-
-        if (!is_uploaded_file($tmp)) {
-            resposta(false, "Arquivo inválido para {$campo}.", 400);
-        }
-
+        $tamanho = strlen($bytes);
         if ($tamanho <= 0 || $tamanho > $maxBytes) {
             resposta(false, "A imagem {$campo} deve ter até 10 MB.", 400);
         }
-
-        $mime = $finfo->file($tmp);
+        $mime = $finfo->buffer($bytes);
 
         if (!isset($permitidos[$mime])) {
             resposta(false, "Formato inválido para {$campo}.", 400);
         }
 
         $arquivos[$campo] = [
-            'tmp' => $tmp,
+            'bytes' => $bytes,
             'ext' => $permitidos[$mime]
         ];
     }
@@ -145,7 +141,7 @@ try {
         $nomeArquivo = $campo . '.' . $arquivo['ext'];
         $destino = $destinoDir . '/' . $nomeArquivo;
 
-        if (!move_uploaded_file($arquivo['tmp'], $destino)) {
+        if (file_put_contents($destino, $arquivo['bytes'], LOCK_EX) === false) {
             throw new RuntimeException("Não foi possível salvar {$campo}.");
         }
 

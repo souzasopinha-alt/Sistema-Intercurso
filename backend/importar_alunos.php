@@ -25,10 +25,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-if (
-    !isset($_FILES['arquivo']) ||
-    $_FILES['arquivo']['error'] !== UPLOAD_ERR_OK
-) {
+$payload = json_decode(file_get_contents('php://input'), true);
+if (!is_array($payload) || !isset($payload['conteudo'])) {
     http_response_code(400);
     echo json_encode([
         'erro' => 'Envie um arquivo CSV válido.'
@@ -36,9 +34,14 @@ if (
     exit;
 }
 
-$arquivo = $_FILES['arquivo'];
+$conteudo = is_string($payload['conteudo']) ? base64_decode($payload['conteudo'], true) : false;
+if ($conteudo === false) {
+    http_response_code(400);
+    echo json_encode(['erro' => 'O conteúdo do CSV é inválido.'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
-if ($arquivo['size'] > 5 * 1024 * 1024) {
+if (strlen($conteudo) > 5 * 1024 * 1024) {
     http_response_code(400);
     echo json_encode([
         'erro' => 'O arquivo não pode ultrapassar 5 MB.'
@@ -47,7 +50,7 @@ if ($arquivo['size'] > 5 * 1024 * 1024) {
 }
 
 $extensao = strtolower(
-    pathinfo($arquivo['name'], PATHINFO_EXTENSION)
+    pathinfo((string) ($payload['nome'] ?? ''), PATHINFO_EXTENSION)
 );
 
 if ($extensao !== 'csv') {
@@ -58,7 +61,11 @@ if ($extensao !== 'csv') {
     exit;
 }
 
-$handle = fopen($arquivo['tmp_name'], 'r');
+$handle = fopen('php://temp', 'r+');
+if ($handle !== false) {
+    fwrite($handle, $conteudo);
+    rewind($handle);
+}
 
 if ($handle === false) {
     http_response_code(400);

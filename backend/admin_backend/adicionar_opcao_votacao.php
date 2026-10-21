@@ -18,7 +18,11 @@ if (empty($_SESSION['usuario_id'])) {
     resposta(false, 'Sessão não encontrada.', 401);
 }
 
-$nome = trim($_POST['nome'] ?? '');
+$payload = json_decode(file_get_contents('php://input'), true);
+if (!is_array($payload)) {
+    resposta(false, 'Conteúdo JSON inválido.', 400);
+}
+$nome = trim($payload['nome'] ?? '');
 if ($nome === '' || mb_strlen($nome) > 100) {
     resposta(false, 'Informe um nome de até 100 caracteres para a opção.', 400);
 }
@@ -38,16 +42,17 @@ try {
     }
 
     foreach ($campos as $campo) {
-        if (!isset($_FILES[$campo]) || $_FILES[$campo]['error'] !== UPLOAD_ERR_OK) {
+        $conteudo = $payload[$campo]['data'] ?? '';
+        $bytes = is_string($conteudo) ? base64_decode($conteudo, true) : false;
+        if ($bytes === false) {
             resposta(false, "Envie a imagem {$campo}.", 400);
         }
-        $tmp = $_FILES[$campo]['tmp_name'];
-        $tamanho = (int) $_FILES[$campo]['size'];
-        $mime = is_uploaded_file($tmp) ? $finfo->file($tmp) : '';
+        $tamanho = strlen($bytes);
+        $mime = $finfo->buffer($bytes);
         if ($tamanho < 1 || $tamanho > 10 * 1024 * 1024 || !isset($permitidos[$mime])) {
             resposta(false, "A imagem {$campo} deve ser JPG, PNG ou WEBP e ter até 10 MB.", 400);
         }
-        $arquivos[$campo] = ['tmp' => $tmp, 'ext' => $permitidos[$mime]];
+        $arquivos[$campo] = ['bytes' => $bytes, 'ext' => $permitidos[$mime]];
     }
 
     $pdo->beginTransaction();
@@ -69,7 +74,7 @@ try {
     foreach ($arquivos as $campo => $arquivo) {
         $arquivoNome = $campo . '.' . $arquivo['ext'];
         $destino = $diretorio . '/' . $arquivoNome;
-        if (!move_uploaded_file($arquivo['tmp'], $destino)) {
+        if (file_put_contents($destino, $arquivo['bytes'], LOCK_EX) === false) {
             throw new RuntimeException("Não foi possível salvar {$campo}.");
         }
         $salvos[] = $destino;

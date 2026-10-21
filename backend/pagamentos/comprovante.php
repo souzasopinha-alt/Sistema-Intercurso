@@ -17,8 +17,14 @@ if (!isset($_SESSION['usuario_id'])) {
 
 $usuarioId = (int) $_SESSION['usuario_id'];
 
-$pedidoId = $_POST['pedido_id'] ?? null;
-$metodoPagamento = $_POST['metodo_pagamento'] ?? '';
+$payload = json_decode(file_get_contents('php://input'), true);
+if (!is_array($payload)) {
+    http_response_code(400);
+    echo json_encode(['sucesso' => false, 'erro' => 'Conteúdo JSON inválido.']);
+    exit;
+}
+$pedidoId = $payload['pedido_id'] ?? null;
+$metodoPagamento = $payload['metodo_pagamento'] ?? '';
 
 if (!$pedidoId || !filter_var($pedidoId, FILTER_VALIDATE_INT)) {
     http_response_code(400);
@@ -70,7 +76,7 @@ try {
         }
 
         // ---------- PIX ----------
-        if (!isset($_FILES['comprovante'])) {
+        if (!isset($payload['comprovante']['data'])) {
             $pdo->rollBack();
             http_response_code(400);
             echo json_encode([
@@ -80,9 +86,10 @@ try {
             exit;
         }
 
-        $arquivo = $_FILES['comprovante'];
-
-        if ($arquivo['error'] !== UPLOAD_ERR_OK) {
+        $conteudo = is_string($payload['comprovante']['data'])
+            ? base64_decode($payload['comprovante']['data'], true)
+            : false;
+        if ($conteudo === false) {
             $pdo->rollBack();
             http_response_code(400);
             echo json_encode([
@@ -92,7 +99,7 @@ try {
             exit;
         }
 
-        if ($arquivo['size'] > 10 * 1024 * 1024) {
+        if (strlen($conteudo) > 10 * 1024 * 1024 || strlen($conteudo) === 0) {
             $pdo->rollBack();
             http_response_code(400);
             echo json_encode([
@@ -103,7 +110,7 @@ try {
         }
 
         $finfo = new finfo(FILEINFO_MIME_TYPE);
-        $tipo = $finfo->file($arquivo['tmp_name']);
+        $tipo = $finfo->buffer($conteudo);
 
         $tiposPermitidos = [
             'image/jpeg' => 'jpg',
@@ -132,7 +139,7 @@ try {
 
         $caminhoCompleto = $pastaUploads . $nomeArquivo;
 
-        if (!move_uploaded_file($arquivo['tmp_name'], $caminhoCompleto)) {
+        if (file_put_contents($caminhoCompleto, $conteudo, LOCK_EX) === false) {
             $pdo->rollBack();
             http_response_code(500);
             echo json_encode([
