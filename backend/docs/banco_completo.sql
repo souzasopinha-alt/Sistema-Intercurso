@@ -1,7 +1,9 @@
--- Sistema Intercurso: estrutura completa do banco de dados.
+-- Sistema Intercurso: instalação completa em um único arquivo SQL.
+-- Inclui a estrutura da votação (migration 001), importação de alunos e
+-- suporte a várias opções por administrador (migration 002).
 -- Pode ser executado em um banco vazio ou em um banco existente.
 -- Em banco existente, as verificações no final adicionam colunas ausentes e
--- removem o índice que impedia o admin de cadastrar várias opções.
+-- removem, se existir, o índice antigo que restringia opções por admin.
 -- Selecione o banco correto no phpMyAdmin antes de executar este arquivo.
 
 SET NAMES utf8mb4;
@@ -36,6 +38,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
         FOREIGN KEY (email_autorizado_id) REFERENCES emails_autorizados(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Estrutura da votação (backend/docs/migrations/001_votacao.sql).
 CREATE TABLE IF NOT EXISTS configuracoes (
     chave VARCHAR(100) NOT NULL,
     valor VARCHAR(255) NOT NULL,
@@ -68,6 +71,8 @@ CREATE TABLE IF NOT EXISTS opcoes (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_opcoes_aprovado (aprovado),
+    -- usuario_id é indexado, mas não é UNIQUE: o admin pode cadastrar
+    -- várias opções e um aluno pode enviar propostas conforme as regras do app.
     KEY idx_opcoes_usuario (usuario_id),
     CONSTRAINT fk_opcoes_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
         ON DELETE RESTRICT ON UPDATE CASCADE
@@ -166,6 +171,7 @@ SET @sql = IF(
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- Bancos antigos tinham este índice, que impedia o admin de cadastrar várias opções.
+-- Equivale à migration 002_multiplas_opcoes_admin.sql.
 SET @sql = IF(
     EXISTS(SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = @banco_atual AND TABLE_NAME = 'opcoes' AND INDEX_NAME = 'uq_opcoes_usuario'),
     'ALTER TABLE opcoes DROP INDEX uq_opcoes_usuario',

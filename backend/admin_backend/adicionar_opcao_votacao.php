@@ -93,6 +93,20 @@ try {
     $pdo->commit();
 
     resposta(true, 'Opção adicionada à votação.', 200, ['opcao_id' => $opcaoId]);
+} catch (PDOException $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    foreach ($salvos as $arquivo) {
+        if (is_file($arquivo)) unlink($arquivo);
+    }
+    error_log('adicionar_opcao_votacao.php: ' . $e->getMessage());
+    if (($e->errorInfo[1] ?? null) === 1062) {
+        resposta(
+            false,
+            'O banco ainda impede múltiplas opções por administrador. Execute a migração backend/docs/migrations/002_multiplas_opcoes_admin.sql.',
+            500
+        );
+    }
+    resposta(false, 'Não foi possível adicionar a opção.', 500);
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     foreach ($salvos as $arquivo) {
