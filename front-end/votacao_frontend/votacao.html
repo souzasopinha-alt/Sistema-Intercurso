@@ -107,7 +107,9 @@
                 const votacaoEncerrada = !dados.votacao_aberta;
 
                 if (opcoes.length === 0) {
-                    status('A votação está aberta, mas ainda não há opções disponíveis.');
+                    status(votacaoEncerrada
+                        ? 'A votação está encerrada.'
+                        : 'A votação está aberta, mas ainda não há opções disponíveis.');
                     lista.innerHTML = '<div class="empty">Nenhuma opção disponível.</div>';
                     return;
                 }

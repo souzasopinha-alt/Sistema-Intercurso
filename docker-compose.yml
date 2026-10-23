@@ -1,0 +1,43 @@
+services:
+  db:
+    image: mariadb:11
+    environment:
+      MYSQL_DATABASE: sistema_intercurso
+      MYSQL_ROOT_PASSWORD: localdev
+      MYSQL_USER: intercurso
+      MYSQL_PASSWORD: intercurso
+    volumes:
+      - intercurso-db:/var/lib/mysql
+      - ./backend/docs/banco_completo.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./backend/docs/local-dev-seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_NAME: sistema_intercurso
+      DB_USER: intercurso
+      DB_PASS: intercurso
+      PORT: "10000"
+    ports:
+      - "8080:10000"
+    volumes:
+      - intercurso-uploads:/var/www/html/backend/uploads
+      - intercurso-payment-storage:/var/www/html/backend/pagamento_backend/storage
+      - intercurso-payment-uploads:/var/www/html/backend/pagamentos/uploads
+
+volumes:
+  intercurso-db:
+  intercurso-uploads:
+  intercurso-payment-storage:
+  intercurso-payment-uploads:

@@ -27,11 +27,27 @@ final class ComprovanteService
             if ((int) $pedido['usuario_id'] !== $usuarioId) {
                 throw new HttpException(403, 'Este pedido não pertence à sua conta.');
             }
-            if ($pedido['status_pagamento'] === 'aprovado') {
+            if (strtoupper((string) $pedido['status_pagamento']) === 'APROVADO') {
                 throw new HttpException(409, 'O pagamento deste pedido já foi aprovado.');
             }
-            if ($pedido['status_pagamento'] === 'em_analise') {
-                throw new HttpException(409, 'Já existe um pagamento em análise para este pedido.');
+
+            if (strtoupper((string) $pedido['status_pagamento']) === 'PENDENTE') {
+                $st = $this->db->prepare(
+                    "SELECT id FROM comprovantes
+                     WHERE pedido_id = ? AND status = 'em_analise'
+                     ORDER BY id DESC
+                     LIMIT 1"
+                );
+                $st->execute([$pedidoId]);
+                if ($st->fetchColumn() !== false) {
+                    throw new HttpException(409, 'Já existe um pagamento em análise para este pedido.');
+                }
+            } else {
+                $this->db->prepare(
+                    "UPDATE comprovantes
+                     SET status = 'recusado'
+                     WHERE pedido_id = ? AND status = 'em_analise'"
+                )->execute([$pedidoId]);
             }
 
             if ($info !== null) {
@@ -54,8 +70,11 @@ final class ComprovanteService
             ]);
             $comprovanteId = (int) $this->db->lastInsertId();
 
-            $this->db->prepare("UPDATE pedidos SET status_pagamento = 'em_analise' WHERE id = ?")
-                     ->execute([$pedidoId]);
+            $this->db->prepare(
+                "UPDATE pedidos
+                 SET status_pagamento = 'PENDENTE', metodo_pagamento = ?
+                 WHERE id = ?"
+            )->execute([strtoupper($metodo), $pedidoId]);
 
             $this->db->commit();
         } catch (Throwable $e) {
@@ -72,7 +91,7 @@ final class ComprovanteService
             'id'               => $comprovanteId,
             'pedido_id'        => $pedidoId,
             'metodo_pagamento' => $metodo,
-            'status_pagamento' => 'em_analise',
+            'status_pagamento' => 'PENDENTE',
         ];
     }
 
@@ -117,10 +136,11 @@ final class ComprovanteService
                          WHERE c.hash_sha256 IS NOT NULL
                            AND d.hash_sha256 = c.hash_sha256 AND d.id <> c.id) AS duplicados
                   FROM comprovantes c
-                  JOIN pedidos p ON p.id = c.pedido_id";
+                  JOIN pedidos p ON p.id = c.pedido_id
+                 WHERE (c.status <> 'em_analise' OR p.status_pagamento = 'PENDENTE')";
         $params = [];
         if ($status) {
-            $sql .= ' WHERE c.status = ?';
+            $sql .= ' AND c.status = ?';
             $params[] = $status;
         }
         $sql .= " ORDER BY FIELD(c.status, 'em_analise', 'recusado', 'aprovado'), c.criado_em DESC LIMIT 200";
@@ -145,7 +165,10 @@ final class ComprovanteService
 
         $this->db->beginTransaction();
         try {
-            $this->buscarPedido($pedidoId, true);
+            $pedido = $this->buscarPedido($pedidoId, true);
+            if (strtoupper((string) $pedido['status_pagamento']) !== 'PENDENTE') {
+                throw new HttpException(409, 'O pedido já foi analisado por outro fluxo.');
+            }
 
             $st = $this->db->prepare(
                 "SELECT id FROM comprovantes
@@ -167,8 +190,9 @@ final class ComprovanteService
             )->execute([$novo, $acao === 'recusar' ? $motivo : null, $adminId, $comprovanteId]);
 
             // Se o seu pedido tem uma coluna de status geral (ex.: 'pago'), atualize-a aqui também.
+            $statusPedido = $acao === 'aprovar' ? 'APROVADO' : 'RECUSADO';
             $this->db->prepare('UPDATE pedidos SET status_pagamento = ? WHERE id = ?')
-                     ->execute([$novo, $pedidoId]);
+                     ->execute([$statusPedido, $pedidoId]);
 
             $this->db->commit();
         } catch (Throwable $e) {
@@ -178,7 +202,11 @@ final class ComprovanteService
             throw $e;
         }
 
-        return ['pedido_id' => $pedidoId, 'comprovante_id' => (int) $comprovanteId, 'status_pagamento' => $novo];
+        return [
+            'pedido_id' => $pedidoId,
+            'comprovante_id' => (int) $comprovanteId,
+            'status_pagamento' => $statusPedido
+        ];
     }
 
     /* ------------------------------------------------------------------

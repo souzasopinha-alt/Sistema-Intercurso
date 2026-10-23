@@ -32,7 +32,7 @@ try {
     try {
         $stmt = $pdo->query(
             "SELECT chave, valor FROM configuracoes
-             WHERE chave IN ('envios_abertos', 'votacao_aberta') FOR UPDATE"
+             WHERE chave IN ('envios_abertos', 'votacao_aberta', 'pedidos_abertos') FOR UPDATE"
         );
 
         $cfg = [];
@@ -48,6 +48,11 @@ try {
         if (($cfg['envios_abertos'] ?? '0') === '1') {
             $pdo->rollBack();
             resposta(false, 'Encerre os envios antes de abrir a votação.', 409);
+        }
+
+        if (($cfg['pedidos_abertos'] ?? '0') === '1') {
+            $pdo->rollBack();
+            resposta(false, 'Encerre os pedidos antes de reabrir a votação.', 409);
         }
 
         $pdo->exec("UPDATE configuracoes SET valor = '1' WHERE chave = 'votacao_aberta'");

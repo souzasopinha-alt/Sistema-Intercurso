@@ -8,7 +8,7 @@
 
 const ENDPOINTS = {
     auth: '../../backend/admin_backend/auth/verificar_sessao.php',
-    logout: '../../backend/admin_backend/auth/logout.php',
+    logout: '../../backend/logout.php',
     pedidos: '../../backend/admin_backend/admin_pedidos.php',
     resumo: '../../backend/admin_backend/admin.php',
     votos: '../../backend/admin_backend/admin_votos.php',
@@ -882,17 +882,22 @@ function renderRelatorio() {
 async function protegerPainel() {
   try {
     const resp = await fetch(ENDPOINTS.auth, { credentials: 'include' });
-    if (!resp.ok) throw new Error();
+    if (!resp.ok) {
+      window.location.replace('../login.html');
+      return false;
+    }
     const d = await resp.json();
     if (!d.logado || !d.admin) {
-      window.location.href = '../login.html';
-      return;
+      window.location.replace('../login.html');
+      return false;
     }
     document.getElementById('userName').textContent = d.nome || 'Administrador';
     document.getElementById('userRole').textContent = 'Administrador';
+    return true;
   } catch (e) {
-    document.getElementById('userName').textContent = 'Administrador';
-    document.getElementById('userRole').textContent = 'Administrador';
+    console.error('Não foi possível verificar a sessão administrativa:', e);
+    window.location.replace('../login.html');
+    return false;
   }
 }
 
@@ -955,7 +960,7 @@ function configurar() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   configurar();
-  await protegerPainel();
+  if (!(await protegerPainel())) return;
   await atualizarPedidos();
   renderRelatorio();
   window.setInterval(() => {

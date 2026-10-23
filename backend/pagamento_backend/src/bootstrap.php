@@ -53,7 +53,7 @@ final class HttpException extends RuntimeException
  * Autenticação baseada na sessão do seu login atual.
  * >>> Se o seu login usa outras chaves de sessão, ajuste APENAS esta classe. <<<
  *   $_SESSION['usuario_id']     -> id do usuário logado
- *   $_SESSION['usuario_perfil'] -> 'admin' para administradores
+ *   $_SESSION['tipo']           -> 'ADMIN' para administradores
  */
 final class Auth
 {
@@ -69,14 +69,16 @@ final class Auth
 
     public static function ehAdmin(): bool
     {
-        return self::usuarioId() !== null && ($_SESSION['usuario_perfil'] ?? '') === 'admin';
+        return self::usuarioId() !== null
+            && strtoupper((string) ($_SESSION['tipo'] ?? '')) === 'ADMIN';
     }
 
     public static function exigirAdmin(): int
     {
-        if (!self::ehAdmin()) {
+        $usuarioId = self::usuarioId();
+        if ($usuarioId === null || !self::ehAdmin()) {
             throw new HttpException(self::usuarioId() ? 403 : 401, 'Acesso restrito a administradores.');
         }
-        return self::usuarioId();
+        return $usuarioId;
     }
 }

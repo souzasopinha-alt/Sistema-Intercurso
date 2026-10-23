@@ -37,11 +37,24 @@ try {
     );
 
     $stmt->execute();
-
     $enviosAbertos = $stmt->fetchColumn() === '1';
 
+    $stmt = $pdo->prepare(
+        'SELECT envios_finalizados
+         FROM usuarios
+         WHERE id = ?
+         LIMIT 1'
+    );
+    $stmt->execute([(int) $_SESSION['usuario_id']]);
+    $enviosFinalizados = $stmt->fetchColumn();
+
+    if ($enviosFinalizados === false) {
+        resposta(false, 'Usuário não encontrado.', 404);
+    }
+
     resposta(true, '', 200, [
-        'envios_abertos' => $enviosAbertos
+        'envios_abertos' => $enviosAbertos,
+        'envios_finalizados' => (int) $enviosFinalizados === 1
     ]);
 } catch (Throwable $e) {
     error_log('estado_envios.php: ' . $e->getMessage());

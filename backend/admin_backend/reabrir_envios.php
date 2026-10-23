@@ -46,12 +46,18 @@ try {
             resposta(false, 'Encerre a votação antes de reabrir os envios.', 409);
         }
 
+        if (($cfg['pedidos_abertos'] ?? '0') === '1') {
+            $pdo->rollBack();
+            resposta(false, 'Encerre os pedidos antes de reabrir os envios.', 409);
+        }
+
         if (($cfg['envios_abertos'] ?? '0') === '1') {
             $pdo->rollBack();
             resposta(false, 'Os envios já estão abertos.', 409);
         }
 
         $pdo->exec("UPDATE configuracoes SET valor = '1' WHERE chave = 'envios_abertos'");
+        $pdo->exec('UPDATE usuarios SET envios_finalizados = 0');
 
         $pdo->commit();
 

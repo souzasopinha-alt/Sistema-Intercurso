@@ -14,10 +14,10 @@ COPY . /var/www/html
 
 RUN mkdir -p /var/www/html/backend/uploads/camisas \
         /var/www/html/backend/pagamentos/uploads \
-        /var/www/html/backend/admin_backend/storage/comprovantes \
+        /var/www/html/backend/pagamento_backend/storage/comprovantes \
     && chown -R www-data:www-data /var/www/html/backend/uploads \
         /var/www/html/backend/pagamentos/uploads \
-        /var/www/html/backend/admin_backend/storage
+        /var/www/html/backend/pagamento_backend/storage
 
 # O Render fornece PORT. A imagem oficial do Apache escuta na porta 80 por padrão.
 EXPOSE 10000

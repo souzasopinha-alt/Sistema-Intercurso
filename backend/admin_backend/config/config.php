@@ -3,13 +3,13 @@
 return [
     'db' => [
         'host' => getenv('DB_HOST') ?: 'localhost',
-        'name' => getenv('DB_NAME') ?: 'db.php',
+        'name' => getenv('DB_NAME') ?: 'sistema_intercurso',
         'user' => getenv('DB_USER') ?: 'root',
         'pass' => getenv('DB_PASS') ?: '',
     ],
     'upload' => [
         // Fora do alcance público: os arquivos só saem pela API (e só para o admin).
-        'dir'       => dirname(__DIR__) . '/storage/comprovantes',
+        'dir'       => dirname(__DIR__, 2) . '/pagamento_backend/storage/comprovantes',
         'max_bytes' => 10 * 1024 * 1024, // 10 MB (igual ao limite do formulário)
         'mimes'     => [
             'image/jpeg'      => 'jpg',

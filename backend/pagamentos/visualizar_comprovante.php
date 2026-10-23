@@ -24,7 +24,7 @@ if (!$id || !filter_var($id, FILTER_VALIDATE_INT)) {
 try {
 
     $stmt = $pdo->prepare("
-        SELECT arquivo
+        SELECT arquivo, arquivo_nome, mime_type
         FROM comprovantes
         WHERE id = ?
         LIMIT 1
@@ -39,16 +39,20 @@ try {
         exit('Comprovante não encontrado.');
     }
 
-    $arquivo = $comprovante['arquivo'];
-
-    $caminho = dirname(__DIR__, 2) . '/' . $arquivo;
+    if (!empty($comprovante['arquivo_nome'])) {
+        $nome = basename($comprovante['arquivo_nome']);
+        $caminho = dirname(__DIR__) . '/pagamento_backend/storage/comprovantes/' . $nome;
+        $tipo = $comprovante['mime_type'];
+    } else {
+        $arquivo = (string) ($comprovante['arquivo'] ?? '');
+        $caminho = dirname(__DIR__, 2) . '/' . $arquivo;
+        $tipo = $caminho !== '' && is_file($caminho) ? mime_content_type($caminho) : false;
+    }
 
     if (!is_file($caminho)) {
         http_response_code(404);
         exit('Arquivo do comprovante não encontrado.');
     }
-
-    $tipo = mime_content_type($caminho);
 
     $tiposPermitidos = [
         'image/jpeg',
@@ -64,7 +68,9 @@ try {
 
     header('Content-Type: ' . $tipo);
     header('Content-Length: ' . filesize($caminho));
-    header('Content-Disposition: inline');
+    header('X-Content-Type-Options: nosniff');
+    header('Cache-Control: private, no-store');
+    header('Content-Disposition: inline; filename="comprovante-' . (int) $id . '"');
 
     readfile($caminho);
     exit;

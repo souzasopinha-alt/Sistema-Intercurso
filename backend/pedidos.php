@@ -1,8 +1,19 @@
 <?php
 
-require_once 'db.php';
+session_start();
 
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
+
+if (
+    empty($_SESSION['usuario_id']) ||
+    ($_SESSION['tipo'] ?? '') !== 'ADMIN'
+) {
+    http_response_code(isset($_SESSION['usuario_id']) ? 403 : 401);
+    echo json_encode(['erro' => 'Acesso não autorizado.'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+require_once __DIR__ . '/db.php';
 
 try {
     $sql = "
@@ -57,12 +68,13 @@ if (!empty($filtros)) {
 
     $pedidos = $stmt->fetchAll();
 
-    echo json_encode($pedidos);
+    echo json_encode($pedidos, JSON_UNESCAPED_UNICODE);
 
 } catch (PDOException $e) {
     http_response_code(500);
+    error_log('Erro ao listar pedidos: ' . $e->getMessage());
 
     echo json_encode([
         'erro' => 'Erro ao buscar os pedidos.'
-    ]);
+    ], JSON_UNESCAPED_UNICODE);
 }

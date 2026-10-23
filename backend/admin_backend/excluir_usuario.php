@@ -49,34 +49,46 @@ try {
     $pdo->beginTransaction();
 
     try {
-        // 1. Votos dados pelo próprio usuário.
+        // Votos precisam ser removidos antes das opções, camisas e usuários
+        // por causa das chaves estrangeiras.
         $stmt = $pdo->prepare('DELETE FROM votos_realizados WHERE usuario_id = ?');
         $stmt->execute([$alvoId]);
 
-        // 2. Votos de outros usuários na proposta deste (libera FK de opcoes.id).
+        // Votos de outros usuários na proposta deste (libera FK de opcoes.id).
         $stmt = $pdo->prepare(
             'DELETE FROM votos_realizados
              WHERE opcao_id IN (SELECT id FROM opcoes WHERE usuario_id = ?)'
         );
         $stmt->execute([$alvoId]);
 
-        // 3. Propostas do usuário.
+        $stmt = $pdo->prepare('DELETE FROM votos WHERE usuario_id = ?');
+        $stmt->execute([$alvoId]);
+
+        $stmt = $pdo->prepare(
+            'DELETE FROM votos
+             WHERE camisa_id IN (SELECT id FROM camisas WHERE usuario_id = ?)'
+        );
+        $stmt->execute([$alvoId]);
+
+        // Comprovantes dependem dos pedidos e devem sair antes deles.
+        $stmt = $pdo->prepare(
+            'DELETE comprovantes FROM comprovantes
+             INNER JOIN pedidos ON pedidos.id = comprovantes.pedido_id
+             WHERE pedidos.usuario_id = ?'
+        );
+        $stmt->execute([$alvoId]);
+
+        $stmt = $pdo->prepare('DELETE FROM pedidos WHERE usuario_id = ?');
+        $stmt->execute([$alvoId]);
+
+        // Propostas do usuário.
         $stmt = $pdo->prepare('DELETE FROM opcoes WHERE usuario_id = ?');
         $stmt->execute([$alvoId]);
 
-        // 4. Tabelas relacionadas. Ignora se alguma não existir.
-        foreach (['camisas', 'pedidos', 'votos'] as $tabela) {
-            try {
-                $stmt = $pdo->prepare("DELETE FROM {$tabela} WHERE usuario_id = ?");
-                $stmt->execute([$alvoId]);
-            } catch (PDOException $e) {
-                if (($e->errorInfo[1] ?? null) != 1146) {
-                    throw $e;
-                }
-            }
-        }
+        $stmt = $pdo->prepare('DELETE FROM camisas WHERE usuario_id = ?');
+        $stmt->execute([$alvoId]);
 
-        // 5. Usuário.
+        // Usuário.
         $stmt = $pdo->prepare('DELETE FROM usuarios WHERE id = ?');
         $stmt->execute([$alvoId]);
 

@@ -27,10 +27,23 @@ CREATE TABLE `camisas` (
 CREATE TABLE `comprovantes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `pedido_id` int(11) NOT NULL,
-  `arquivo` varchar(255) NOT NULL,
+  `arquivo` varchar(255) DEFAULT NULL,
+  `metodo_pagamento` enum('pix','dinheiro') DEFAULT NULL,
+  `descricao` text DEFAULT NULL,
+  `arquivo_nome` varchar(64) DEFAULT NULL,
+  `arquivo_original` varchar(255) DEFAULT NULL,
+  `mime_type` varchar(50) DEFAULT NULL,
+  `tamanho` int(10) unsigned DEFAULT NULL,
+  `hash_sha256` char(64) DEFAULT NULL,
+  `status` enum('em_analise','aprovado','recusado') NOT NULL DEFAULT 'em_analise',
+  `motivo_recusa` varchar(255) DEFAULT NULL,
+  `analisado_por` int(11) DEFAULT NULL,
+  `analisado_em` datetime DEFAULT NULL,
+  `criado_em` datetime NOT NULL DEFAULT current_timestamp(),
   `data_envio` timestamp NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `pedido_id` (`pedido_id`),
+  KEY `idx_comprovantes_hash` (`hash_sha256`),
   CONSTRAINT `comprovantes_ibfk_1` FOREIGN KEY (`pedido_id`) REFERENCES `pedidos` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -82,6 +95,7 @@ CREATE TABLE `pedidos` (
   `numero` int(11) NOT NULL,
   `tamanho` varchar(10) NOT NULL,
   `nome_camisa` varchar(50) NOT NULL,
+  `total` decimal(10,2) NOT NULL DEFAULT 35.00,
   `data_pedido` timestamp NULL DEFAULT current_timestamp(),
   `status_pagamento` enum('PENDENTE','APROVADO','RECUSADO') DEFAULT 'PENDENTE',
   `metodo_pagamento` enum('PIX','DINHEIRO') DEFAULT NULL,
@@ -154,4 +168,3 @@ ON DUPLICATE KEY UPDATE valor = VALUES(valor);
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
-

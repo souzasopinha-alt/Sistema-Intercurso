@@ -51,10 +51,8 @@ formulario.addEventListener("submit", function(event) {
 
             if (resultado.tipo === "ADMIN") {
     window.location.href = "admin_frontend/admin.html";
-} else if (resultado.tipo === "ALUNO") {
+} else if (resultado.tipo === "ALUNO" || resultado.tipo === "LIDER") {
     window.location.href = resultado.proximo_passo || "uploud_frontend/uploud_camisas.html";
-} else if (resultado.tipo === "LIDER") {
-    window.location.href = "admin_frontend/admin.html";
 }
 
         } else {

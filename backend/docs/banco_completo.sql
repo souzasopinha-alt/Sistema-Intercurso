@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS pedidos (
     numero INT NOT NULL,
     tamanho VARCHAR(10) NOT NULL,
     nome_camisa VARCHAR(50) NOT NULL,
+    total DECIMAL(10,2) NOT NULL DEFAULT 35.00,
     data_pedido TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     status_pagamento ENUM('PENDENTE','APROVADO','RECUSADO') DEFAULT 'PENDENTE',
     metodo_pagamento ENUM('PIX','DINHEIRO') DEFAULT NULL,
@@ -117,10 +118,23 @@ CREATE TABLE IF NOT EXISTS votos_realizados (
 CREATE TABLE IF NOT EXISTS comprovantes (
     id INT NOT NULL AUTO_INCREMENT,
     pedido_id INT NOT NULL,
-    arquivo VARCHAR(255) NOT NULL,
+    arquivo VARCHAR(255) DEFAULT NULL,
+    metodo_pagamento ENUM('pix','dinheiro') DEFAULT NULL,
+    descricao TEXT DEFAULT NULL,
+    arquivo_nome VARCHAR(64) DEFAULT NULL,
+    arquivo_original VARCHAR(255) DEFAULT NULL,
+    mime_type VARCHAR(50) DEFAULT NULL,
+    tamanho INT UNSIGNED DEFAULT NULL,
+    hash_sha256 CHAR(64) DEFAULT NULL,
+    status ENUM('em_analise','aprovado','recusado') NOT NULL DEFAULT 'em_analise',
+    motivo_recusa VARCHAR(255) DEFAULT NULL,
+    analisado_por INT DEFAULT NULL,
+    analisado_em DATETIME DEFAULT NULL,
+    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     data_envio TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_comprovantes_pedido (pedido_id),
+    KEY idx_comprovantes_hash (hash_sha256),
     CONSTRAINT fk_comprovantes_pedido FOREIGN KEY (pedido_id) REFERENCES pedidos(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

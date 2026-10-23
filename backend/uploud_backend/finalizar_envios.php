@@ -11,6 +11,7 @@ function resposta(bool $ok, string $message = '', int $status = 200, array $extr
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Allow: POST');
     resposta(false, 'Método não permitido.', 405);
 }
 
@@ -25,34 +26,53 @@ if (!isset($pdo) || !($pdo instanceof PDO)) {
 $usuarioId = (int) $_SESSION['usuario_id'];
 
 try {
-    // Confere se envios ainda estão abertos
+    $pdo->beginTransaction();
+
+    // Use the same lock order as upload_camisas.php so finalization cannot
+    // race an upload already in progress.
     $stmt = $pdo->query(
-        "SELECT valor FROM configuracoes WHERE chave = 'envios_abertos' LIMIT 1"
+        "SELECT valor FROM configuracoes
+         WHERE chave = 'envios_abertos'
+         FOR UPDATE"
     );
 
     if ($stmt->fetchColumn() !== '1') {
+        $pdo->rollBack();
         resposta(false, 'O período de envio foi encerrado.', 403);
     }
 
-    // Confere se o aluno já enviou ao menos uma proposta
+    $stmt = $pdo->prepare(
+        'SELECT envios_finalizados FROM usuarios WHERE id = ? FOR UPDATE'
+    );
+    $stmt->execute([$usuarioId]);
+    $finalizado = $stmt->fetchColumn();
+    if ($finalizado === false) {
+        $pdo->rollBack();
+        resposta(false, 'Usuário não encontrado.', 404);
+    }
+
     $stmt = $pdo->prepare(
         'SELECT COUNT(*) FROM opcoes WHERE usuario_id = ?'
     );
     $stmt->execute([$usuarioId]);
 
     if ((int) $stmt->fetchColumn() === 0) {
+        $pdo->rollBack();
         resposta(false, 'Você ainda não enviou nenhuma proposta.', 400);
     }
 
-    // Marca como finalizado
     $stmt = $pdo->prepare(
         'UPDATE usuarios SET envios_finalizados = 1 WHERE id = ?'
     );
     $stmt->execute([$usuarioId]);
 
+    $pdo->commit();
     resposta(true, 'Propostas finalizadas com sucesso.');
 
 } catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     error_log('finalizar_envios.php: ' . $e->getMessage());
     resposta(false, 'Não foi possível finalizar os envios.', 500);
 }

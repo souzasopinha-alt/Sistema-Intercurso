@@ -50,6 +50,7 @@ try {
     $stmt = $pdo->query(
     'SELECT
         o.id,
+        o.usuario_id,
         o.nome,
         o.imagem1,
         o.imagem2,

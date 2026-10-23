@@ -49,7 +49,7 @@ try {
             ) AS comprovante_id,
 
             (
-                SELECT comprovantes.arquivo
+                SELECT COALESCE(comprovantes.arquivo, comprovantes.arquivo_nome)
                 FROM comprovantes
                 WHERE comprovantes.pedido_id = pedidos.id
                 ORDER BY comprovantes.data_envio DESC, comprovantes.id DESC
