@@ -599,6 +599,14 @@ button {
     font-weight: 650;
 }
 
+.payment-status {
+    min-height: 20px;
+    margin: 0 0 14px;
+    color: var(--cinza);
+    font-size: 13px;
+    font-weight: 650;
+}
+
 .submit-button {
     display: flex;
     align-items: center;

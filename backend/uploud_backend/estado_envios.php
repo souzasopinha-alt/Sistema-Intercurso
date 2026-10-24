@@ -4,21 +4,7 @@ session_start();
 header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../db.php';
-
-function resposta(bool $success, string $message = '', int $status = 200, array $extra = []): never
-{
-    http_response_code($status);
-
-    echo json_encode(
-        array_merge([
-            'success' => $success,
-            'message' => $message
-        ], $extra),
-        JSON_UNESCAPED_UNICODE
-    );
-
-    exit;
-}
+require_once __DIR__ . '/../resposta.php';
 
 if (empty($_SESSION['usuario_id'])) {
     resposta(false, 'Você precisa estar logado.', 401);

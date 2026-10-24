@@ -1,10 +1,23 @@
 <?php
 
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store');
+
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    header('Allow: POST');
+    http_response_code(405);
+    echo json_encode([
+        'sucesso' => false,
+        'erro' => 'Método não permitido.'
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+define('DB_JSON_ERRORS', true);
+
 session_start();
 
 require_once __DIR__ . '/db.php';
-
-header('Content-Type: application/json; charset=utf-8');
 
 $email = trim($_POST['email'] ?? '');
 $senha = $_POST['senha'] ?? '';
@@ -141,10 +154,21 @@ if (!$usuario) {
 }
     }
 
-        // ---------- Próximo passo do aluno ----------
+    $tipoUsuario = strtoupper(trim((string) ($usuario['tipo'] ?? '')));
+    if (!in_array($tipoUsuario, ['ALUNO', 'LIDER', 'ADMIN'], true)) {
+        $pdo->rollBack();
+        http_response_code(403);
+        echo json_encode([
+            'sucesso' => false,
+            'erro' => 'O perfil desta conta não é válido.'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // ---------- Próximo passo do aluno ----------
     $proximoPasso = 'uploud_frontend/uploud_camisas.html';
 
-    if (strtoupper((string) $usuario['tipo']) === 'ALUNO') {
+    if ($tipoUsuario === 'ALUNO') {
         $stmt = $pdo->query(
             "SELECT valor FROM configuracoes
              WHERE chave = 'votacao_aberta' LIMIT 1"
@@ -183,12 +207,12 @@ if (!$usuario) {
     $_SESSION['usuario_id'] = $usuario['id'];
     $_SESSION['nome'] = $usuario['nome'];
     $_SESSION['email'] = $usuario['email'];
-    $_SESSION['tipo'] = $usuario['tipo'];
+    $_SESSION['tipo'] = $tipoUsuario;
 
-        echo json_encode([
+    echo json_encode([
         'sucesso' => true,
         'mensagem' => 'Login realizado com sucesso.',
-        'tipo' => $usuario['tipo'],
+        'tipo' => $tipoUsuario,
         'proximo_passo' => $proximoPasso
     ], JSON_UNESCAPED_UNICODE);
 } catch (Throwable $e) {

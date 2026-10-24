@@ -2,13 +2,7 @@
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../db.php';
-
-function resposta(bool $ok, string $message, int $status = 200): never
-{
-    http_response_code($status);
-    echo json_encode(['success' => $ok, 'message' => $message], JSON_UNESCAPED_UNICODE);
-    exit;
-}
+require_once __DIR__ . '/auth/exigir_administrador.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Allow: POST');
@@ -25,11 +19,7 @@ if (!$opcaoId || $opcaoId < 1) {
 }
 
 try {
-    $stmt = $pdo->prepare('SELECT tipo FROM usuarios WHERE id = ? LIMIT 1');
-    $stmt->execute([(int) $_SESSION['usuario_id']]);
-    if (strtoupper((string) $stmt->fetchColumn()) !== 'ADMIN') {
-        resposta(false, 'Acesso permitido somente para administradores.', 403);
-    }
+    exigirAdministrador($pdo);
 
     $pdo->beginTransaction();
     $stmt = $pdo->query("SELECT valor FROM configuracoes WHERE chave = 'votacao_aberta' FOR UPDATE");

@@ -13,7 +13,7 @@
                 <div>
                     <h1>Votação das camisas</h1>
                     <p>Escolha uma opção. Cada usuário pode votar uma única vez.</p>
-                    <a class="back-link" href="../uploud_frontend/uploud_camisas.html">← Voltar para envio</a>
+                    <a class="back-link" href="../uploud_frontend/uploud_camisas.html?retorno=votacao">← Voltar para envio</a>
                 </div>
                 <button class="logout-button" id="btnSairVotacao" type="button">Sair</button>
             </div>
@@ -96,7 +96,8 @@
                 const dados = await resposta.json();
 
                 if (resposta.status === 401) {
-                    throw new Error('Faça login para acessar a votação.');
+                    window.location.replace('../login.html');
+                    return;
                 }
 
                 if (!resposta.ok || !dados.success) {

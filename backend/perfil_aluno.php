@@ -15,6 +15,15 @@ if (!isset($_SESSION['usuario_id'])) {
     exit;
 }
 
+if (!in_array(strtoupper(trim((string) ($_SESSION['tipo'] ?? ''))), ['ALUNO', 'LIDER'], true)) {
+    http_response_code(403);
+    echo json_encode([
+        'sucesso' => false,
+        'erro' => 'Acesso permitido apenas para alunos e líderes.'
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 try {
     $usuarioId = (int) $_SESSION['usuario_id'];
 

@@ -357,12 +357,14 @@ function abrirConfirmacao(id, acao) {
 
 let comprovanteHtml = '';
 
-if (!p.comprovanteId) {
+if (!p.comprovanteId || !p.comprovanteArquivo) {
   comprovanteHtml = `
     <div class="comprovante-modal">
       <h3>Comprovante de pagamento</h3>
       <p class="comprovante-modal__vazio">
-        Nenhum comprovante enviado.
+        ${p.metodoPagamento === 'DINHEIRO'
+          ? 'Pagamento em dinheiro: sem comprovante anexado.'
+          : 'Nenhum comprovante enviado.'}
       </p>
     </div>
   `;
@@ -505,14 +507,17 @@ async function enviarDecisao(acao) {
       body: JSON.stringify({ id })
     });
 
-    if (!resp.ok) throw new Error('Falha ao atualizar o pedido.');
+    const resultado = await resp.json().catch(() => ({}));
+    if (!resp.ok || !resultado.sucesso) {
+      throw new Error(resultado.erro || `Falha ao atualizar o pedido (${resp.status}).`);
+    }
 
     fecharModal();
     await atualizarPedidos();
     mostrarToast(acao === 'APROVADO' ? 'Pedido aceito.' : 'Pedido recusado.');
   } catch (e) {
     console.error(e);
-    mostrarToast('Não foi possível atualizar o pedido.');
+    mostrarToast(e.message || 'Não foi possível atualizar o pedido.');
   }
 }
 

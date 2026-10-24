@@ -28,6 +28,8 @@
       <div class="order-badge"><span></span></div>
     </div>
 
+    <p class="payment-status" id="payment-status" role="status" aria-live="polite"></p>
+
     <div class="pix-details" id="pix-details">
       <p class="muted">Valor a pagar</p>
       <p class="total">R$ 35,00</p>
@@ -56,8 +58,7 @@
 
       <form id="payment-form"
         action="../backend/pagamentos/comprovante.php"
-        method="post"
-        enctype="multipart/form-data">
+        method="post">
         <input type="hidden" name="pedido_id" id="pedido-id">
 
         <fieldset class="payment-method">
@@ -140,10 +141,12 @@
       const remove = document.querySelector('#remove-file');
       const copyButton = document.querySelector('#copy-key');
       const copyFeedback = document.querySelector('#copy-feedback');
+      const paymentStatus = document.querySelector('#payment-status');
       const pixDetails = document.querySelector('#pix-details');
       const cashMessage = document.querySelector('#cash-message');
       const receiptIntro = document.querySelector('#receipt-intro');
       const submitLabel = document.querySelector('#submit-label');
+      const submitButton = document.querySelector('#submit-button');
       const paymentOptions = document.querySelectorAll('input[name="metodo_pagamento"]');
       const maxSize = 10 * 1024 * 1024;
       const pedidoId = sessionStorage.getItem('pedido_id');
@@ -154,8 +157,58 @@
 
       if (!pedidoId) {
         error.textContent = 'Pedido não encontrado. Volte e faça o pedido novamente.';
-        form.querySelector('button[type="submit"]').disabled = true;
+        submitButton.disabled = true;
+      } else {
+        submitButton.disabled = true;
       }
+
+      async function carregarStatusPagamento() {
+        if (!pedidoId) return;
+
+        const resposta = await fetch(
+          `${form.action}?pedido_id=${encodeURIComponent(pedidoId)}`,
+          {
+            credentials: 'include',
+            cache: 'no-store',
+            headers: { Accept: 'application/json' }
+          }
+        );
+        const resultado = await resposta.json().catch(() => ({}));
+
+        if (resposta.status === 401) {
+          window.location.replace('login.html');
+          return;
+        }
+        if (!resposta.ok || !resultado.sucesso) {
+          throw new Error(resultado.erro || `Não foi possível consultar o pedido (${resposta.status}).`);
+        }
+
+        const badge = document.querySelector('.order-badge span');
+        badge.textContent = `Pedido #${resultado.pedido_id}`;
+
+        if (resultado.status_pagamento === 'APROVADO') {
+          paymentStatus.textContent = 'Este pedido já está pago.';
+          submitButton.disabled = true;
+        } else if (resultado.pagamento_registrado) {
+          paymentStatus.textContent = resultado.status_pagamento === 'RECUSADO'
+            ? 'O pagamento anterior foi recusado. Envie novamente o comprovante ou escolha outra forma de pagamento.'
+            : 'O pagamento deste pedido já foi enviado e está aguardando análise.';
+          if (resultado.status_pagamento !== 'RECUSADO') {
+            submitButton.disabled = true;
+          } else {
+            submitButton.disabled = false;
+          }
+        } else {
+          submitButton.disabled = false;
+        }
+      }
+
+      carregarStatusPagamento().catch(erro => {
+        paymentStatus.textContent = erro instanceof TypeError
+          ? 'Não foi possível conectar ao servidor para consultar o pedido.'
+          : erro.message || 'Não foi possível consultar o pedido.';
+        submitButton.disabled = true;
+      });
 
       const formatSize = bytes => bytes < 1024 * 1024
         ? `${Math.max(1, Math.round(bytes / 1024))} KB`
@@ -263,7 +316,6 @@
           return;
         }
 
-        const submitButton = document.querySelector('#submit-button');
         const originalLabel = submitLabel.textContent;
 
         submitButton.disabled = true;
@@ -287,16 +339,23 @@
             body: JSON.stringify({
               pedido_id: pedidoId,
               metodo_pagamento: selectedPaymentMethod(),
+              descricao: document.querySelector('#description').value,
               comprovante
             }),
             credentials: 'include'
           });
 
-          const resultado = await resposta.json();
+          const resultado = await resposta.json().catch(() => ({}));
+
+          if (resposta.status === 401) {
+            window.location.replace('login.html');
+            return;
+          }
 
           if (!resposta.ok || !resultado.sucesso) {
             throw new Error(
-              resultado.erro || resultado.mensagem || 'Não foi possível registrar o pagamento.'
+              resultado.erro || resultado.mensagem ||
+              `Não foi possível registrar o pagamento (${resposta.status}).`
             );
           }
 
@@ -306,7 +365,9 @@
           window.location.href = 'perfil.html';
 
         } catch (erro) {
-          error.textContent = erro.message || 'Erro ao enviar o pagamento. Tente novamente.';
+          error.textContent = erro instanceof TypeError
+            ? 'Falha de comunicação. Verifique sua conexão e tente novamente.'
+            : erro.message || 'Erro ao enviar o pagamento. Tente novamente.';
         } finally {
           submitButton.disabled = false;
           submitLabel.textContent = originalLabel;

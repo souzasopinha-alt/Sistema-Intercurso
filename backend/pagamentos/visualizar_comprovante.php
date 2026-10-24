@@ -4,12 +4,12 @@ session_start();
 
 require_once '../db.php';
 
-if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['tipo'])) {
+if (empty($_SESSION['usuario_id']) || !isset($_SESSION['tipo'])) {
     http_response_code(401);
     exit('Usuário não autenticado.');
 }
 
-if ($_SESSION['tipo'] !== 'ADMIN') {
+if (strtoupper(trim((string) $_SESSION['tipo'])) !== 'ADMIN') {
     http_response_code(403);
     exit('Acesso permitido apenas para administradores.');
 }
@@ -41,11 +41,23 @@ try {
 
     if (!empty($comprovante['arquivo_nome'])) {
         $nome = basename($comprovante['arquivo_nome']);
-        $caminho = dirname(__DIR__) . '/pagamento_backend/storage/comprovantes/' . $nome;
+        $diretorioUpload = getenv('PAYMENT_UPLOAD_DIR')
+            ?: dirname(__DIR__) . '/pagamento_backend/storage/comprovantes';
+        $caminho = rtrim($diretorioUpload, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $nome;
+        $caminhoPadrao = dirname(__DIR__)
+            . '/pagamento_backend/storage/comprovantes/' . $nome;
+        if (!is_file($caminho) && is_file($caminhoPadrao)) {
+            $caminho = $caminhoPadrao;
+        }
         $tipo = $comprovante['mime_type'];
     } else {
         $arquivo = (string) ($comprovante['arquivo'] ?? '');
         $caminho = dirname(__DIR__, 2) . '/' . $arquivo;
+        if (!is_file($caminho) && $arquivo !== '') {
+            $diretorioUpload = getenv('PAYMENT_UPLOAD_DIR') ?: __DIR__ . '/uploads';
+            $caminho = rtrim($diretorioUpload, DIRECTORY_SEPARATOR)
+                . DIRECTORY_SEPARATOR . basename($arquivo);
+        }
         $tipo = $caminho !== '' && is_file($caminho) ? mime_content_type($caminho) : false;
     }
 

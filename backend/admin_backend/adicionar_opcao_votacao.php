@@ -2,13 +2,7 @@
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../db.php';
-
-function resposta(bool $ok, string $message, int $status = 200, array $extra = []): never
-{
-    http_response_code($status);
-    echo json_encode(array_merge(['success' => $ok, 'message' => $message], $extra), JSON_UNESCAPED_UNICODE);
-    exit;
-}
+require_once __DIR__ . '/auth/exigir_administrador.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Allow: POST');
@@ -35,11 +29,7 @@ $salvos = [];
 $diretorio = null;
 
 try {
-    $stmt = $pdo->prepare('SELECT tipo FROM usuarios WHERE id = ? LIMIT 1');
-    $stmt->execute([(int) $_SESSION['usuario_id']]);
-    if (strtoupper((string) $stmt->fetchColumn()) !== 'ADMIN') {
-        resposta(false, 'Acesso permitido somente para administradores.', 403);
-    }
+    exigirAdministrador($pdo);
 
     foreach ($campos as $campo) {
         $conteudo = $payload[$campo]['data'] ?? '';

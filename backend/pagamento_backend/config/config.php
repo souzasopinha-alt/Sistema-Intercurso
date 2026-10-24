@@ -8,7 +8,7 @@ return [
         'pass' => getenv('DB_PASS') ?: '',
     ],
     'upload' => [
-        'dir' => __DIR__ . '/../storage/comprovantes',
+        'dir' => getenv('PAYMENT_UPLOAD_DIR') ?: __DIR__ . '/../storage/comprovantes',
         'max_bytes' => 10 * 1024 * 1024,
         'mimes' => [
             'image/jpeg' => 'jpg',

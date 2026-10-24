@@ -128,9 +128,15 @@ final class ComprovanteService
             throw new HttpException(422, 'Status inválido.');
         }
 
-        $sql = "SELECT c.id, c.pedido_id, c.metodo_pagamento, c.descricao, c.arquivo_original,
-                       c.mime_type, c.tamanho, c.status, c.motivo_recusa, c.criado_em, c.analisado_em,
-                       (c.arquivo_nome IS NOT NULL) AS tem_arquivo,
+        $sql = "SELECT c.id, c.pedido_id,
+                       COALESCE(c.metodo_pagamento, LOWER(p.metodo_pagamento)) AS metodo_pagamento,
+                       c.descricao, c.arquivo_original,
+                       c.tamanho, c.status, c.motivo_recusa, c.criado_em, c.analisado_em,
+                       COALESCE(
+                           c.mime_type,
+                           CASE WHEN LOWER(c.arquivo) LIKE '%.pdf' THEN 'application/pdf' END
+                       ) AS mime_type,
+                       (c.arquivo_nome IS NOT NULL OR c.arquivo IS NOT NULL) AS tem_arquivo,
                        p.total, p.usuario_id,
                        (SELECT COUNT(*) FROM comprovantes d
                          WHERE c.hash_sha256 IS NOT NULL
@@ -214,8 +220,8 @@ final class ComprovanteService
      * ------------------------------------------------------------------ */
     public function entregarArquivo(int $pedidoId, ?int $comprovanteId): never
     {
-        $sql = 'SELECT arquivo_nome, mime_type, tamanho FROM comprovantes
-                 WHERE pedido_id = ? AND arquivo_nome IS NOT NULL';
+        $sql = 'SELECT arquivo_nome, arquivo, mime_type, tamanho FROM comprovantes
+                 WHERE pedido_id = ? AND (arquivo_nome IS NOT NULL OR arquivo IS NOT NULL)';
         $params = [$pedidoId];
         if ($comprovanteId !== null) {
             $sql .= ' AND id = ?';
@@ -225,13 +231,40 @@ final class ComprovanteService
         $st->execute($params);
         $c = $st->fetch();
 
-        $ext = $c ? (config('upload')['mimes'][$c['mime_type']] ?? null) : null;
-        $caminho = $c ? $this->caminho($c['arquivo_nome']) : null;
-        if (!$c || !$ext || !is_file($caminho)) {
+        if (!$c) {
             throw new HttpException(404, 'Comprovante não encontrado.');
         }
 
-        header('Content-Type: ' . $c['mime_type']);
+        if (!empty($c['arquivo_nome'])) {
+            $nome = basename($c['arquivo_nome']);
+            $caminho = rtrim(config('upload')['dir'], DIRECTORY_SEPARATOR)
+                . DIRECTORY_SEPARATOR . $nome;
+            $caminhoPadrao = dirname(__DIR__)
+                . '/storage/comprovantes/' . $nome;
+            if (!is_file($caminho) && is_file($caminhoPadrao)) {
+                $caminho = $caminhoPadrao;
+            }
+        } else {
+            $nome = basename((string) $c['arquivo']);
+            $caminhoLegado = dirname(__DIR__, 3)
+                . '/backend/pagamentos/uploads/' . $nome;
+            $caminho = is_file($caminhoLegado)
+                ? $caminhoLegado
+                : rtrim(config('upload')['dir'], DIRECTORY_SEPARATOR)
+                    . DIRECTORY_SEPARATOR . $nome;
+        }
+
+        if (!is_file($caminho)) {
+            throw new HttpException(404, 'Comprovante não encontrado.');
+        }
+
+        $mime = $c['mime_type'] ?: (new finfo(FILEINFO_MIME_TYPE))->file($caminho);
+        $ext = config('upload')['mimes'][$mime] ?? null;
+        if (!$ext) {
+            throw new HttpException(415, 'Formato de comprovante não permitido.');
+        }
+
+        header('Content-Type: ' . $mime);
         header('Content-Length: ' . filesize($caminho));
         header("Content-Disposition: inline; filename=\"comprovante-pedido-{$pedidoId}.{$ext}\"");
         header('X-Content-Type-Options: nosniff');
@@ -290,14 +323,17 @@ final class ComprovanteService
     private function salvarArquivo(string $tmp, string $ext): string
     {
         $dir = config('upload')['dir'];
-        if (!is_dir($dir) && !mkdir($dir, 0750, true) && !is_dir($dir)) {
+        if (!is_dir($dir) && !@mkdir($dir, 0750, true) && !is_dir($dir)) {
             throw new RuntimeException('Não foi possível criar a pasta de comprovantes.');
         }
         $nome = bin2hex(random_bytes(16)) . '.' . $ext; // nome aleatório: nunca usa o nome do cliente
-        if (!move_uploaded_file($tmp, $this->caminho($nome))) {
+        if (!@move_uploaded_file($tmp, $this->caminho($nome))) {
             throw new RuntimeException('Não foi possível salvar o comprovante.');
         }
-        chmod($this->caminho($nome), 0640);
+        if (!@chmod($this->caminho($nome), 0640)) {
+            @unlink($this->caminho($nome));
+            throw new RuntimeException('Não foi possível proteger o arquivo do comprovante.');
+        }
         return $nome;
     }
 

@@ -70,7 +70,7 @@ final class Auth
     public static function ehAdmin(): bool
     {
         return self::usuarioId() !== null
-            && strtoupper((string) ($_SESSION['tipo'] ?? '')) === 'ADMIN';
+            && strtoupper(trim((string) ($_SESSION['tipo'] ?? ''))) === 'ADMIN';
     }
 
     public static function exigirAdmin(): int

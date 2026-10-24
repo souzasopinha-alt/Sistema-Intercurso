@@ -1,2 +1,3 @@
 backend/pagamentos/uploads/*
 !backend/pagamentos/uploads/.gitkeep
+backend/.env

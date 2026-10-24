@@ -1,0 +1,5 @@
+RewriteEngine On
+
+# Keep the v2 router directly addressable for health checks and staging.
+RewriteCond %{REQUEST_URI} !^/backend/v2/
+RewriteRule ^(.*\.php)$ v2/index.php?route=$1 [QSA,L]

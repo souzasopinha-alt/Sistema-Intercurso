@@ -4,25 +4,7 @@ session_start();
 header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../db.php';
-
-function resposta(
-    bool $ok,
-    string $message,
-    int $status = 200,
-    array $extra = []
-): never {
-    http_response_code($status);
-
-    echo json_encode(
-        array_merge(
-            ['success' => $ok, 'message' => $message],
-            $extra
-        ),
-        JSON_UNESCAPED_UNICODE
-    );
-
-    exit;
-}
+require_once __DIR__ . '/../resposta.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     resposta(false, 'Método não permitido.', 405);
